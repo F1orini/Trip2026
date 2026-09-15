@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
 <title>Serra Negra → Florianópolis · Roteiro</title>
 <meta name="description" content="Roteiro completo Serra Negra → Florianópolis: mapa, paradas, pernoites e fotos.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,18 +20,27 @@
     --coral: #c45c26;
     --smoke: #6b7c86;
     --line: rgba(20,48,60,0.12);
-    --panel: rgba(255,252,248,0.94);
+    --panel: rgba(255,252,248,0.96);
     --shadow: 0 16px 40px rgba(20,48,60,0.18);
     --sidebar-w: min(400px, 92vw);
+    --safe-b: env(safe-area-inset-bottom, 0px);
+    --safe-t: env(safe-area-inset-top, 0px);
+    /* Android muitas vezes reporta 0 — reserva mínimo pra gesture/nav bar */
+    --nav-clear: max(20px, env(safe-area-inset-bottom, 0px));
+    --sheet-peek: calc(68px + var(--nav-clear));
+    --sheet-h: min(72dvh, calc(100dvh - 56px - var(--safe-t)));
+    --touch: 44px;
   }
   *{ box-sizing: border-box; }
-  html, body{ margin:0; padding:0; height:100%; overflow:hidden; }
+  html, body{ margin:0; padding:0; height:100%; height:100dvh; overflow:hidden; }
   body{
     color: var(--ink);
     font-family: 'Source Sans 3', system-ui, sans-serif;
     line-height: 1.45;
     -webkit-font-smoothing: antialiased;
     background: #d6e4ea;
+    -webkit-tap-highlight-color: transparent;
+    padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) 0 env(safe-area-inset-left, 0px);
   }
 
   #map{
@@ -40,33 +49,126 @@
     z-index: 1;
   }
 
+  /* Mobile-first: bottom sheet */
   .sidebar{
     position: absolute;
     z-index: 1000;
-    top: 12px; left: 12px; bottom: 12px;
-    width: var(--sidebar-w);
+    left: 0; right: 0; bottom: 0;
+    top: auto;
+    width: 100%;
+    height: var(--sheet-h);
+    max-height: calc(100dvh - 52px - var(--safe-t));
     display: flex;
     flex-direction: column;
     background: var(--panel);
     backdrop-filter: blur(14px);
     border: 1px solid var(--line);
-    border-radius: 20px;
-    box-shadow: var(--shadow);
+    border-bottom: none;
+    border-radius: 22px 22px 0 0;
+    box-shadow: 0 -8px 40px rgba(20,48,60,0.2);
     overflow: hidden;
-    transition: transform .28s ease;
+    transition: height .28s ease, transform .28s ease, max-height .28s ease;
+    padding-bottom: var(--nav-clear);
+  }
+  .sidebar.collapsed{
+    height: var(--sheet-peek);
+    max-height: var(--sheet-peek);
+  }
+  .sidebar.collapsed .detail,
+  .sidebar.collapsed .legend-row,
+  .sidebar.collapsed .timeline-wrap,
+  .sidebar.collapsed .sidebar-head{
+    display: none;
+  }
+
+  .sheet-grab{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    padding: 10px 0 4px;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .sheet-grab-pill{
+    width: 42px;
+    height: 5px;
+    border-radius: 999px;
+    background: rgba(20,48,60,0.22);
+  }
+
+  .sheet-bar{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 14px calc(10px + 2px);
+    flex-shrink: 0;
+  }
+  .sidebar:not(.collapsed) .sheet-bar{ display: none; }
+  .sheet-bar-copy{ min-width: 0; flex: 1; }
+  .sheet-bar-copy strong{
+    display: block;
+    font-family: 'Fraunces', serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+  }
+  .sheet-bar-copy span{
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  .sheet-bar-btn{
+    appearance: none;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink);
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 700;
+    min-height: var(--touch);
+    padding: 0 16px;
+    border-radius: 12px;
+    cursor: pointer;
+    flex-shrink: 0;
+    touch-action: manipulation;
   }
 
   .sidebar-head{
-    padding: 18px 18px 12px;
+    padding: 4px 14px 10px;
     border-bottom: 1px solid var(--line);
     flex-shrink: 0;
+  }
+  .sheet-head-row{
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .sheet-head-row .brand{ flex: 1; min-width: 0; }
+  .sheet-close-map{
+    appearance: none;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink);
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 700;
+    min-height: 36px;
+    padding: 0 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    flex-shrink: 0;
+    touch-action: manipulation;
   }
   .brand{
     font-family: 'Fraunces', serif;
     font-weight: 700;
-    font-size: 1.45rem;
-    line-height: 1.1;
-    margin: 0 0 8px;
+    font-size: 1.2rem;
+    line-height: 1.15;
+    margin: 0 0 6px;
     letter-spacing: -0.02em;
   }
   .brand span{ color: var(--coral); }
@@ -111,7 +213,7 @@
   .head-actions{
     display: flex;
     gap: 8px;
-    margin-top: 12px;
+    margin-top: 10px;
   }
   .head-actions button{
     appearance: none;
@@ -121,10 +223,12 @@
     font: inherit;
     font-size: 0.82rem;
     font-weight: 700;
-    padding: 9px 12px;
+    min-height: var(--touch);
+    padding: 0 12px;
     border-radius: 12px;
     cursor: pointer;
     flex: 1;
+    touch-action: manipulation;
     transition: transform .15s ease, background .15s ease, border-color .15s ease, color .15s ease;
   }
   .head-actions button:hover{
@@ -227,7 +331,7 @@
   }
   .detail-photo-wrap{
     position: relative;
-    height: 168px;
+    height: 118px;
     background: linear-gradient(135deg, #b8d4d4, #8bb8b0 45%, #d4c4a8);
     overflow: hidden;
   }
@@ -280,7 +384,7 @@
   }
   .detail.empty .detail-placeholder{ display: flex; }
   .detail:not(.empty) .detail-placeholder{ display: none; }
-  .detail-body{ padding: 12px 16px 14px; }
+  .detail-body{ padding: 10px 14px 12px; }
   .detail-type{
     display: inline-flex;
     font-size: 0.68rem;
@@ -298,7 +402,7 @@
   .detail-type.sleep{ color: #6b4a8a; background: rgba(107,74,138,0.12); }
   .detail-name{
     font-family: 'Fraunces', serif;
-    font-size: 1.2rem;
+    font-size: 1.08rem;
     font-weight: 600;
     margin: 0 0 4px;
     line-height: 1.2;
@@ -306,7 +410,7 @@
   .detail-note{
     margin: 0;
     color: var(--ink-soft);
-    font-size: 0.9rem;
+    font-size: 0.86rem;
   }
   .detail-note.empty-copy{ color: var(--muted); }
   .detail-time{
@@ -443,11 +547,12 @@
     display: none;
     position: absolute;
     z-index: 950;
-    top: 12px;
-    right: 12px;
-    width: min(340px, calc(100vw - 24px));
-    max-height: calc(100vh - 24px);
-    background: rgba(255,252,248,0.96);
+    top: calc(10px + var(--safe-t));
+    left: 10px;
+    right: 10px;
+    width: auto;
+    max-height: min(38dvh, 300px);
+    background: rgba(255,252,248,0.97);
     backdrop-filter: blur(12px);
     border: 1px solid var(--line);
     border-radius: 16px;
@@ -456,17 +561,8 @@
     flex-direction: column;
   }
   .ilha-map-panel.open{ display: flex; }
-  body:not(.sidebar-collapsed) .ilha-map-panel{
-    right: 12px;
-    left: auto;
-  }
-  @media (min-width: 761px){
-    body:not(.sidebar-collapsed) .ilha-map-panel{
-      left: calc(var(--sidebar-w) + 28px);
-      right: auto;
-      width: min(360px, calc(100vw - var(--sidebar-w) - 100px));
-      max-height: calc(100vh - 100px);
-    }
+  body.sidebar-collapsed .ilha-map-panel{
+    max-height: min(46dvh, 360px);
   }
   .ilha-map-panel-head{
     display: flex;
@@ -517,10 +613,12 @@
     font-size: 0.72rem;
     font-weight: 700;
     color: var(--muted);
-    padding: 9px 10px;
+    padding: 10px 10px;
+    min-height: 40px;
     cursor: pointer;
     border-bottom: 2px solid transparent;
     margin-bottom: -1px;
+    touch-action: manipulation;
   }
   .ilha-map-tabs button:hover{ color: var(--ink); }
   .ilha-map-tabs button.active{
@@ -654,9 +752,11 @@
     font: inherit;
     font-size: 0.82rem;
     font-weight: 700;
+    min-height: var(--touch);
     padding: 10px 12px;
     border-radius: 12px;
     cursor: pointer;
+    touch-action: manipulation;
   }
 
   .leaflet-tooltip.walk-tip{
@@ -705,7 +805,8 @@
     flex: 1;
     overflow-y: auto;
     overscroll-behavior: contain;
-    padding: 8px 10px 18px;
+    -webkit-overflow-scrolling: touch;
+    padding: 8px 10px calc(24px + var(--nav-clear));
   }
   .day-label{
     position: sticky;
@@ -725,10 +826,11 @@
     display: grid;
     grid-template-columns: 28px 1fr;
     gap: 2px 10px;
-    padding: 10px 8px;
+    padding: 12px 8px;
     border-radius: 12px;
     cursor: pointer;
     outline: none;
+    touch-action: manipulation;
     transition: background .15s ease, transform .15s ease;
   }
   .stop:hover, .stop:focus-visible{
@@ -748,7 +850,7 @@
     object-fit: cover;
     border-radius: 10px;
     border: 1px solid var(--line);
-    display: block;
+    display: none;
   }
   .stop-rail{
     position: relative;
@@ -822,8 +924,9 @@
   .map-actions{
     position: absolute;
     z-index: 900;
-    top: 12px;
-    right: 56px;
+    top: calc(10px + var(--safe-t));
+    left: 10px;
+    right: auto;
     display: flex;
     gap: 8px;
   }
@@ -832,13 +935,15 @@
     background: var(--panel);
     backdrop-filter: blur(10px);
     border-radius: 12px;
-    padding: 10px 14px;
+    min-height: var(--touch);
+    padding: 0 14px;
     font: inherit;
     font-weight: 700;
     font-size: 0.82rem;
     color: var(--ink);
     cursor: pointer;
     box-shadow: var(--shadow);
+    touch-action: manipulation;
     transition: transform .15s ease, background .15s ease;
   }
   .map-actions button:hover{ transform: translateY(-1px); background: #fff; }
@@ -846,43 +951,52 @@
   .map-hint{
     position: absolute;
     z-index: 900;
-    left: calc(var(--sidebar-w) + 28px);
-    bottom: 16px;
+    left: 10px;
+    right: 10px;
+    bottom: calc(var(--sheet-h) + 10px);
     background: rgba(255,255,255,0.92);
     border: 1px solid var(--line);
     border-radius: 999px;
-    padding: 7px 14px;
-    font-size: 0.78rem;
+    padding: 8px 14px;
+    font-size: 0.76rem;
     color: var(--muted);
     box-shadow: var(--shadow);
     pointer-events: none;
-    max-width: min(420px, calc(100vw - var(--sidebar-w) - 48px));
+    max-width: none;
+    text-align: center;
+  }
+  body.sidebar-collapsed .map-hint{
+    bottom: calc(var(--sheet-peek) + 10px);
   }
   .map-hint.loading{ color: var(--sea); }
 
   .toggle-sidebar{
     display: none;
-    position: absolute;
-    z-index: 1100;
-    top: 12px; right: 12px;
-    border: 1px solid var(--line);
-    background: var(--panel);
-    backdrop-filter: blur(10px);
-    border-radius: 12px;
-    padding: 10px 14px;
-    font: inherit;
-    font-weight: 700;
-    font-size: 0.85rem;
-    color: var(--ink);
-    cursor: pointer;
-    box-shadow: var(--shadow);
   }
 
   /* Leaflet */
-  .leaflet-control-zoom{ border: none !important; box-shadow: var(--shadow) !important; border-radius: 10px !important; overflow: hidden; }
+  .leaflet-control-zoom{
+    border: none !important;
+    box-shadow: var(--shadow) !important;
+    border-radius: 10px !important;
+    overflow: hidden;
+    margin-right: 10px !important;
+    margin-bottom: calc(var(--sheet-h) + 12px) !important;
+  }
+  body.sidebar-collapsed .leaflet-control-zoom{
+    margin-bottom: calc(var(--sheet-peek) + 12px) !important;
+  }
+  .leaflet-bottom.leaflet-right{
+    margin-bottom: 0;
+  }
   .leaflet-control-attribution{
     background: rgba(255,255,255,0.75) !important;
     font-size: 10px !important;
+    max-width: calc(100vw - 24px);
+    margin-bottom: calc(var(--sheet-peek) + 4px) !important;
+  }
+  body:not(.sidebar-collapsed) .leaflet-control-attribution{
+    margin-bottom: calc(var(--sheet-h) + 4px) !important;
   }
   .leaflet-tooltip.pin-tip{
     background: rgba(20,48,60,0.92);
@@ -958,37 +1072,94 @@
     50%{ box-shadow: 0 3px 16px rgba(107,74,138,0.55), 0 0 0 6px rgba(107,74,138,0.15); }
   }
 
-  @media (max-width: 760px){
+  @media (min-width: 761px){
     .sidebar{
-      top: auto; left: 0; right: 0; bottom: 0;
-      width: 100%;
-      height: min(58vh, 520px);
-      border-radius: 20px 20px 0 0;
-      transform: translateY(0);
+      top: 12px; left: 12px; bottom: 12px;
+      right: auto;
+      width: var(--sidebar-w);
+      height: auto;
+      max-height: none;
+      border-radius: 20px;
+      border-bottom: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      padding-bottom: 0;
+      transition: transform .28s ease;
     }
-    .sidebar.collapsed{ transform: translateY(calc(100% - 56px)); }
+    .sidebar.collapsed{
+      height: auto;
+      max-height: none;
+      transform: none;
+    }
     .sidebar.collapsed .detail,
     .sidebar.collapsed .legend-row,
-    .sidebar.collapsed .timeline-wrap{ display: none; }
-    .toggle-sidebar{ display: block; }
-    .map-actions{ right: 12px; top: 56px; }
-    .map-hint{
-      left: 12px;
-      bottom: calc(min(58vh, 520px) + 12px);
-      max-width: calc(100vw - 24px);
+    .sidebar.collapsed .timeline-wrap,
+    .sidebar.collapsed .sidebar-head{
+      display: revert;
     }
-    body.sidebar-collapsed .map-hint{ bottom: 72px; }
-    .leaflet-control-zoom{ margin-bottom: 70px !important; }
+    .sidebar.collapsed .sidebar-head{ display: block; }
+    .sheet-grab,
+    .sheet-bar,
+    .sheet-close-map{ display: none !important; }
+    .sheet-head-row{ display: block; }
+    .sidebar-head{ padding: 18px 18px 12px; }
+    .brand{ font-size: 1.45rem; margin-bottom: 8px; }
+    .detail-photo-wrap{ height: 168px; }
+    .detail-body{ padding: 12px 16px 14px; }
+    .detail-name{ font-size: 1.2rem; }
+    .detail-note{ font-size: 0.9rem; }
+    .head-actions button{
+      min-height: 0;
+      padding: 9px 12px;
+    }
     .ilha-map-panel{
-      top: 56px;
+      top: 12px;
       right: 12px;
-      left: 12px;
-      width: auto;
-      max-height: min(42vh, 340px);
+      left: auto;
+      width: min(340px, calc(100vw - 24px));
+      max-height: calc(100vh - 24px);
+    }
+    body:not(.sidebar-collapsed) .ilha-map-panel{
+      left: calc(var(--sidebar-w) + 28px);
+      right: auto;
+      width: min(360px, calc(100vw - var(--sidebar-w) - 100px));
+      max-height: calc(100vh - 100px);
     }
     body.sidebar-collapsed .ilha-map-panel{
-      max-height: min(48vh, 380px);
+      max-height: calc(100vh - 24px);
     }
+    .map-actions{
+      top: 12px;
+      left: auto;
+      right: 56px;
+    }
+    .map-actions button{
+      min-height: 0;
+      padding: 10px 14px;
+    }
+    .map-hint,
+    body.sidebar-collapsed .map-hint{
+      left: calc(var(--sidebar-w) + 28px);
+      right: auto;
+      bottom: 16px;
+      max-width: min(420px, calc(100vw - var(--sidebar-w) - 48px));
+      text-align: left;
+    }
+    .stop-thumb{ display: block; }
+    .leaflet-control-zoom,
+    body.sidebar-collapsed .leaflet-control-zoom{
+      margin-bottom: 20px !important;
+      margin-right: 12px !important;
+    }
+    .leaflet-control-attribution,
+    body:not(.sidebar-collapsed) .leaflet-control-attribution{
+      margin-bottom: 0 !important;
+    }
+  }
+
+  @media (max-width: 760px) and (max-height: 700px){
+    :root{ --sheet-h: min(70dvh, calc(100dvh - 48px - var(--safe-t))); }
+    .detail-photo-wrap{ height: 96px; }
+    .countdown{ display: none; }
   }
 
   @media (prefers-reduced-motion: reduce){
@@ -996,7 +1167,7 @@
   }
 </style>
 </head>
-<body>
+<body class="sidebar-collapsed">
   <div id="map" role="application" aria-label="Mapa do roteiro completo"></div>
   <div class="map-actions">
     <button type="button" id="btn-fit" title="Ver rota toda">Ver rota</button>
@@ -1028,11 +1199,22 @@
     </div>
   </aside>
 
-  <button type="button" class="toggle-sidebar" id="toggle-sidebar" aria-expanded="true">Roteiro</button>
-
-  <aside class="sidebar" id="sidebar" aria-label="Roteiro da viagem">
+  <aside class="sidebar collapsed" id="sidebar" aria-label="Roteiro da viagem">
+    <div class="sheet-grab" id="sheet-grab" role="button" tabindex="0" aria-label="Abrir ou fechar roteiro">
+      <span class="sheet-grab-pill"></span>
+    </div>
+    <div class="sheet-bar">
+      <div class="sheet-bar-copy">
+        <strong>Serra Negra → Floripa</strong>
+        <span>27–29 dez · ~900 km</span>
+      </div>
+      <button type="button" class="sheet-bar-btn" id="toggle-sidebar" aria-expanded="false">Roteiro</button>
+    </div>
     <header class="sidebar-head">
-      <h1 class="brand">Serra Negra <span>→</span> Florianópolis</h1>
+      <div class="sheet-head-row">
+        <h1 class="brand">Serra Negra <span>→</span> Florianópolis</h1>
+        <button type="button" class="sheet-close-map" id="btn-sheet-map" aria-label="Voltar ao mapa">Mapa</button>
+      </div>
       <div class="meta">
         <span><i class="dot-live"></i>27–29 dez</span>
         <span>roteiro completo</span>
@@ -1249,6 +1431,21 @@
   const mapHint = document.getElementById('map-hint');
   const sidebar = document.getElementById('sidebar');
   const toggleBtn = document.getElementById('toggle-sidebar');
+  const sheetGrab = document.getElementById('sheet-grab');
+  const btnSheetMap = document.getElementById('btn-sheet-map');
+
+  function isMobile(){ return window.innerWidth <= 760; }
+
+  function setSheetCollapsed(collapsed){
+    sidebar.classList.toggle('collapsed', collapsed);
+    document.body.classList.toggle('sidebar-collapsed', collapsed);
+    document.body.classList.toggle('sheet-user-open', !collapsed && isMobile());
+    if(toggleBtn){
+      toggleBtn.setAttribute('aria-expanded', String(!collapsed));
+      toggleBtn.textContent = collapsed ? 'Roteiro' : 'Mapa';
+    }
+    setTimeout(() => map.invalidateSize(), 280);
+  }
   const btnPrev = document.getElementById('btn-prev');
   const btnNext = document.getElementById('btn-next');
   const btnFit = document.getElementById('btn-fit');
@@ -1564,15 +1761,28 @@
     return { color:'#1a7a7a', weight:4.5, opacity:0.9, lineJoin:'round', lineCap:'round' };
   }
 
+  function defaultHint(){
+    return isMobile()
+      ? 'Toque nos pins · abra o Roteiro embaixo'
+      : 'Hover nos alfinetes · clique na rota pra ver tudo · ← → navega';
+  }
+
   function setHint(text, loading){
     mapHint.textContent = text;
     mapHint.classList.toggle('loading', !!loading);
   }
 
   function mapPadding(){
-    const padLeft = window.innerWidth > 760 ? 420 : 24;
-    const padBottom = window.innerWidth > 760 ? 24 : Math.min(window.innerHeight * 0.58, 520) + 12;
-    return { paddingTopLeft:[padLeft, 24], paddingBottomRight:[24, padBottom] };
+    if(!isMobile()){
+      return { paddingTopLeft: [420, 24], paddingBottomRight: [24, 24] };
+    }
+    const sheet = sidebar.classList.contains('collapsed')
+      ? Math.min(window.innerHeight * 0.14, 110)
+      : Math.min(window.innerHeight * 0.72, 640);
+    return {
+      paddingTopLeft: [16, 16],
+      paddingBottomRight: [16, sheet + 16]
+    };
   }
 
   const markersById = {};
@@ -1675,17 +1885,13 @@
     setIlhaPinLabels(true);
     openIlhaPanel(opts.tab || 'roteiro');
     // No mobile, prioriza o mapa
-    if(window.innerWidth <= 760 && !opts.keepSidebar){
-      sidebar.classList.add('collapsed');
-      document.body.classList.add('sidebar-collapsed');
-      toggleBtn.setAttribute('aria-expanded', 'false');
-      toggleBtn.textContent = 'Roteiro';
-      setTimeout(() => map.invalidateSize(), 280);
+    if(isMobile() && !opts.keepSidebar){
+      setSheetCollapsed(true);
     }
     const bounds = ilhaBounds();
     map.fitBounds(bounds, {
-      paddingTopLeft: window.innerWidth > 760 ? [24, 24] : [16, 16],
-      paddingBottomRight: window.innerWidth > 760 ? [380, 24] : [16, 16],
+      paddingTopLeft: isMobile() ? [16, 16] : [24, 24],
+      paddingBottomRight: isMobile() ? [16, 16] : [380, 24],
       maxZoom: 14,
       animate: true
     });
@@ -1774,7 +1980,7 @@
         spur._tripMode = 'optional';
         spur.addTo(routeLayer);
       }
-      setHint('Hover nos alfinetes · clique na rota pra ver tudo · ← → navega', false);
+      setHint(defaultHint(), false);
     } catch(err){
       console.warn(err);
       setHint('Rota parcial — tente recarregar', false);
@@ -1806,7 +2012,7 @@
   btnIlhaClose.addEventListener('click', () => {
     exitIlhaMode();
     if(routeBounds) map.fitBounds(routeBounds, mapPadding());
-    setHint('Hover nos alfinetes · clique na rota pra ver tudo · ← → navega', false);
+    setHint(defaultHint(), false);
   });
 
   function typeLabel(place){
@@ -1951,19 +2157,8 @@
 
     updateNavButtons();
 
-    if(window.innerWidth <= 760 && !opts.fromTour){
-      if(showIlhaMap){
-        // Mantém mapa aberto pra ver a ilha
-        sidebar.classList.add('collapsed');
-        document.body.classList.add('sidebar-collapsed');
-        toggleBtn.setAttribute('aria-expanded', 'false');
-        toggleBtn.textContent = 'Roteiro';
-      } else {
-        sidebar.classList.remove('collapsed');
-        document.body.classList.remove('sidebar-collapsed');
-        toggleBtn.setAttribute('aria-expanded', 'true');
-        toggleBtn.textContent = 'Mapa';
-      }
+    if(isMobile() && !opts.fromTour){
+      setSheetCollapsed(!!showIlhaMap);
     }
   }
 
@@ -2004,7 +2199,7 @@
     stopTour();
     exitIlhaMode();
     if(routeBounds) map.fitBounds(routeBounds, mapPadding());
-    setHint('Hover nos alfinetes · clique na rota pra ver tudo · ← → navega', false);
+    setHint(defaultHint(), false);
   });
 
   // —— Countdown ——
@@ -2112,14 +2307,7 @@
     stopTour();
     tourIndex = 0;
     setTourUi(true);
-    // Collapse sidebar a bit on mobile for map focus
-    if(window.innerWidth <= 760){
-      sidebar.classList.add('collapsed');
-      document.body.classList.add('sidebar-collapsed');
-      toggleBtn.setAttribute('aria-expanded', 'false');
-      toggleBtn.textContent = 'Roteiro';
-      setTimeout(() => map.invalidateSize(), 280);
-    }
+    if(isMobile()) setSheetCollapsed(true);
     tourStep();
   }
 
@@ -2143,17 +2331,47 @@
     }
   });
 
-  toggleBtn.addEventListener('click', () => {
-    const collapsed = sidebar.classList.toggle('collapsed');
-    document.body.classList.toggle('sidebar-collapsed', collapsed);
-    toggleBtn.setAttribute('aria-expanded', String(!collapsed));
-    toggleBtn.textContent = collapsed ? 'Roteiro' : 'Mapa';
-    setTimeout(() => map.invalidateSize(), 300);
+  function toggleSheet(){
+    setSheetCollapsed(!sidebar.classList.contains('collapsed'));
+  }
+
+  toggleBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleSheet();
   });
+  if(btnSheetMap){
+    btnSheetMap.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setSheetCollapsed(true);
+    });
+  }
+  if(sheetGrab){
+    sheetGrab.addEventListener('click', toggleSheet);
+    sheetGrab.addEventListener('keydown', (e) => {
+      if(e.key === 'Enter' || e.key === ' '){
+        e.preventDefault();
+        toggleSheet();
+      }
+    });
+  }
 
   window.addEventListener('resize', () => {
+    if(!isMobile()){
+      sidebar.classList.remove('collapsed');
+      document.body.classList.remove('sidebar-collapsed');
+    } else if(!sidebar.classList.contains('collapsed') && !document.body.classList.contains('sheet-user-open')){
+      setSheetCollapsed(true);
+    }
     map.invalidateSize();
   });
+
+  // Desktop starts expanded; mobile keeps the peek sheet
+  if(!isMobile()){
+    sidebar.classList.remove('collapsed');
+    document.body.classList.remove('sidebar-collapsed');
+  } else {
+    setSheetCollapsed(true);
+  }
 
   // CSS helper for hover sync from map
   const styleSync = document.createElement('style');
@@ -2163,7 +2381,7 @@
 
   renderMarkers();
   drawFullRoute().then(() => {
-    setTimeout(() => selectStop('sn'), 300);
+    setTimeout(() => selectStop('sn', { fromTour: true }), 300);
   });
 </script>
 </body>
