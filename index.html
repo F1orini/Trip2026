@@ -1,0 +1,2170 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Serra Negra → Florianópolis · Roteiro</title>
+<meta name="description" content="Roteiro completo Serra Negra → Florianópolis: mapa, paradas, pernoites e fotos.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<style>
+  :root{
+    --ink: #14303c;
+    --ink-soft: #3d5a66;
+    --muted: #5f7a86;
+    --sea: #1a7a7a;
+    --sea-bright: #2a9d8f;
+    --sand: #f7f0e6;
+    --coral: #c45c26;
+    --smoke: #6b7c86;
+    --line: rgba(20,48,60,0.12);
+    --panel: rgba(255,252,248,0.94);
+    --shadow: 0 16px 40px rgba(20,48,60,0.18);
+    --sidebar-w: min(400px, 92vw);
+  }
+  *{ box-sizing: border-box; }
+  html, body{ margin:0; padding:0; height:100%; overflow:hidden; }
+  body{
+    color: var(--ink);
+    font-family: 'Source Sans 3', system-ui, sans-serif;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    background: #d6e4ea;
+  }
+
+  #map{
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+  }
+
+  .sidebar{
+    position: absolute;
+    z-index: 1000;
+    top: 12px; left: 12px; bottom: 12px;
+    width: var(--sidebar-w);
+    display: flex;
+    flex-direction: column;
+    background: var(--panel);
+    backdrop-filter: blur(14px);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    transition: transform .28s ease;
+  }
+
+  .sidebar-head{
+    padding: 18px 18px 12px;
+    border-bottom: 1px solid var(--line);
+    flex-shrink: 0;
+  }
+  .brand{
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 1.45rem;
+    line-height: 1.1;
+    margin: 0 0 8px;
+    letter-spacing: -0.02em;
+  }
+  .brand span{ color: var(--coral); }
+  .meta{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    color: var(--muted);
+    font-size: 0.82rem;
+    font-weight: 600;
+  }
+  .meta .dot-live{
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--coral);
+    display: inline-block;
+    margin-right: 6px;
+    box-shadow: 0 0 0 3px rgba(196,92,38,0.18);
+  }
+  .countdown{
+    margin-top: 10px;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .countdown-label{
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--muted);
+  }
+  .countdown-value{
+    font-family: 'Fraunces', serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--sea);
+  }
+  .countdown-value em{
+    font-style: normal;
+    color: var(--coral);
+  }
+  .head-actions{
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .head-actions button{
+    appearance: none;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink);
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 700;
+    padding: 9px 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    flex: 1;
+    transition: transform .15s ease, background .15s ease, border-color .15s ease, color .15s ease;
+  }
+  .head-actions button:hover{
+    transform: translateY(-1px);
+    border-color: rgba(26,122,122,0.35);
+  }
+  .head-actions button.copied{
+    background: rgba(42,157,143,0.15);
+    color: var(--sea);
+    border-color: rgba(42,157,143,0.35);
+  }
+  .head-actions button.active-panel{
+    background: rgba(26,122,122,0.12);
+    border-color: rgba(26,122,122,0.35);
+    color: var(--sea);
+  }
+
+  .costs-panel{
+    display: none;
+    margin-top: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #fff;
+  }
+  .costs-panel.open{ display: block; }
+  .costs-panel-head{
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .costs-panel-title{
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--sea);
+    margin: 0;
+  }
+  .costs-panel-note{
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin: 0;
+  }
+  .costs-list{
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .costs-list li{
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2px 10px;
+    font-size: 0.8rem;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(20,48,60,0.06);
+  }
+  .costs-list li:last-child{ border-bottom: none; padding-bottom: 0; }
+  .costs-list .c-label{ font-weight: 650; color: var(--ink); }
+  .costs-list .c-detail{
+    grid-column: 1 / -1;
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+  .costs-list .c-value{
+    font-weight: 700;
+    color: var(--coral);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .costs-total{
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--line);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .costs-total span{
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+  .costs-total strong{
+    font-family: 'Fraunces', serif;
+    font-size: 1.05rem;
+    color: var(--ink);
+  }
+
+  .detail{
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(165deg, #fff 0%, var(--sand) 100%);
+    min-height: 0;
+  }
+  .detail-photo-wrap{
+    position: relative;
+    height: 168px;
+    background: linear-gradient(135deg, #b8d4d4, #8bb8b0 45%, #d4c4a8);
+    overflow: hidden;
+  }
+  .detail-photo-wrap::after{
+    content: "";
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, transparent 40%, rgba(20,48,60,0.55));
+    pointer-events: none;
+  }
+  .detail-photo{
+    width: 100%; height: 100%;
+    object-fit: cover; display: block;
+    transition: opacity .35s ease, transform .6s ease;
+  }
+  .detail-photo.is-visible{ opacity: 1; transform: scale(1.02); }
+  .detail-photo.is-hidden{ opacity: 0; position: absolute; transform: scale(1.06); }
+  .detail-nav{
+    position: absolute;
+    z-index: 2;
+    left: 0; right: 0; bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 10px;
+    pointer-events: none;
+  }
+  .detail-nav button{
+    pointer-events: auto;
+    border: none;
+    background: rgba(255,255,255,0.92);
+    color: var(--ink);
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(20,48,60,0.18);
+    transition: transform .15s ease, background .15s ease;
+  }
+  .detail-nav button:hover{ transform: scale(1.06); background: #fff; }
+  .detail-nav button:disabled{ opacity: 0.35; cursor: default; transform: none; }
+  .detail-placeholder{
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Fraunces', serif;
+    color: rgba(20,48,60,0.45);
+    font-size: 1rem;
+    padding: 16px;
+    text-align: center;
+    z-index: 1;
+  }
+  .detail.empty .detail-placeholder{ display: flex; }
+  .detail:not(.empty) .detail-placeholder{ display: none; }
+  .detail-body{ padding: 12px 16px 14px; }
+  .detail-type{
+    display: inline-flex;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--sea);
+    background: rgba(42,157,143,0.15);
+    padding: 3px 8px;
+    border-radius: 999px;
+    margin-bottom: 6px;
+  }
+  .detail-type.technical{ color: var(--smoke); background: rgba(107,124,134,0.15); }
+  .detail-type.optional{ color: var(--coral); background: rgba(196,92,38,0.12); }
+  .detail-type.sleep{ color: #6b4a8a; background: rgba(107,74,138,0.12); }
+  .detail-name{
+    font-family: 'Fraunces', serif;
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 0 0 4px;
+    line-height: 1.2;
+  }
+  .detail-note{
+    margin: 0;
+    color: var(--ink-soft);
+    font-size: 0.9rem;
+  }
+  .detail-note.empty-copy{ color: var(--muted); }
+  .detail-time{
+    margin-top: 8px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--coral);
+  }
+  .detail-video{
+    display: none;
+    margin-top: 10px;
+    text-decoration: none;
+    color: inherit;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fff;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .detail-video.visible{ display: grid; grid-template-columns: 88px 1fr; }
+  .detail-video:hover{ transform: translateY(-1px); box-shadow: 0 6px 16px rgba(20,48,60,0.1); }
+  .detail-video img{ width: 88px; height: 64px; object-fit: cover; display: block; }
+  .detail-video-copy{ padding: 8px 10px; min-width: 0; }
+  .detail-video-kicker{
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #c4302b;
+  }
+  .detail-video-title{
+    font-size: 0.82rem;
+    font-weight: 650;
+    margin-top: 2px;
+    line-height: 1.25;
+  }
+
+  .detail-ferry{
+    display: none;
+    margin-top: 12px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 10px;
+  }
+  .detail-ferry.visible{ display: block; }
+  .detail-ferry-title{
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--sea);
+    margin: 0 0 6px;
+  }
+  .ferry-route{
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 0.92rem;
+    margin: 0 0 2px;
+  }
+  .ferry-note{
+    margin: 0 0 8px;
+    font-size: 0.78rem;
+    color: var(--muted);
+  }
+  .ferry-times{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .ferry-slot{
+    border-radius: 10px;
+    padding: 7px 9px;
+  }
+  .ferry-slot.out{ background: rgba(42,157,143,0.1); }
+  .ferry-slot.back{ background: rgba(196,92,38,0.1); }
+  .ferry-slot strong{
+    display: block;
+    font-size: 0.98rem;
+    font-weight: 700;
+  }
+  .ferry-slot span{
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--muted);
+  }
+  .ferry-slot.back strong{ color: var(--coral); }
+  .ferry-prices{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin: 8px 0;
+  }
+  .ferry-price{
+    border-radius: 10px;
+    padding: 7px 9px;
+    background: rgba(20,48,60,0.04);
+  }
+  .ferry-price strong{
+    display: block;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .ferry-price span{
+    font-size: 0.7rem;
+    color: var(--muted);
+  }
+  .detail-cost{
+    display: none;
+    margin-top: 10px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: rgba(196,92,38,0.08);
+    border: 1px solid rgba(196,92,38,0.18);
+    font-size: 0.8rem;
+    color: var(--ink-soft);
+  }
+  .detail-cost.visible{ display: block; }
+  .detail-cost strong{
+    color: var(--coral);
+    font-weight: 700;
+  }
+  .ferry-extra{
+    margin: 8px 0 0;
+    font-size: 0.75rem;
+    color: var(--ink-soft);
+    line-height: 1.4;
+  }
+
+  .detail-ilha{ display: none !important; }
+
+  .ilha-map-panel{
+    display: none;
+    position: absolute;
+    z-index: 950;
+    top: 12px;
+    right: 12px;
+    width: min(340px, calc(100vw - 24px));
+    max-height: calc(100vh - 24px);
+    background: rgba(255,252,248,0.96);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    flex-direction: column;
+  }
+  .ilha-map-panel.open{ display: flex; }
+  body:not(.sidebar-collapsed) .ilha-map-panel{
+    right: 12px;
+    left: auto;
+  }
+  @media (min-width: 761px){
+    body:not(.sidebar-collapsed) .ilha-map-panel{
+      left: calc(var(--sidebar-w) + 28px);
+      right: auto;
+      width: min(360px, calc(100vw - var(--sidebar-w) - 100px));
+      max-height: calc(100vh - 100px);
+    }
+  }
+  .ilha-map-panel-head{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--line);
+    flex-shrink: 0;
+  }
+  .ilha-map-panel-head strong{
+    font-family: 'Fraunces', serif;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .ilha-map-panel-head span{
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--muted);
+    margin-top: 1px;
+  }
+  .ilha-map-panel-head button{
+    appearance: none;
+    border: 1px solid var(--line);
+    background: #fff;
+    width: 32px; height: 32px;
+    border-radius: 10px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    color: var(--ink);
+    line-height: 1;
+  }
+  .ilha-map-tabs{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    border-bottom: 1px solid var(--line);
+    background: rgba(20,48,60,0.03);
+    flex-shrink: 0;
+  }
+  .ilha-map-tabs button{
+    appearance: none;
+    border: none;
+    background: transparent;
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--muted);
+    padding: 9px 10px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+  }
+  .ilha-map-tabs button:hover{ color: var(--ink); }
+  .ilha-map-tabs button.active{
+    color: var(--sea);
+    border-bottom-color: var(--sea);
+  }
+  .ilha-map-body{
+    overflow: auto;
+    min-height: 0;
+    flex: 1;
+  }
+  .ilha-pane{
+    display: none;
+    padding: 10px 12px 12px;
+    font-size: 0.8rem;
+    color: var(--ink-soft);
+  }
+  .ilha-pane.active{ display: block; }
+  .ilha-pane h4{
+    margin: 0 0 6px;
+    font-family: 'Fraunces', serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .ilha-pane p{ margin: 0 0 8px; line-height: 1.4; }
+  .ilha-pane p:last-child{ margin-bottom: 0; }
+  .ilha-alert{
+    margin: 0 0 10px;
+    padding: 8px 9px;
+    border-radius: 10px;
+    background: rgba(196,92,38,0.1);
+    border: 1px solid rgba(196,92,38,0.2);
+    font-size: 0.75rem;
+    color: var(--ink);
+    line-height: 1.35;
+  }
+  .ilha-alert strong{ color: var(--coral); }
+  .ilha-timeline{
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .ilha-timeline li{
+    display: grid;
+    grid-template-columns: 52px 1fr;
+    gap: 8px;
+    align-items: start;
+  }
+  .ilha-timeline time{
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--coral);
+    font-variant-numeric: tabular-nums;
+  }
+  .ilha-timeline strong{
+    display: block;
+    color: var(--ink);
+    font-size: 0.82rem;
+  }
+  .ilha-timeline span{
+    display: block;
+    font-size: 0.74rem;
+    color: var(--muted);
+    margin-top: 1px;
+  }
+  .ilha-table{
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.74rem;
+  }
+  .ilha-table th,
+  .ilha-table td{
+    text-align: left;
+    padding: 5px 4px;
+    border-bottom: 1px solid rgba(20,48,60,0.06);
+    vertical-align: top;
+  }
+  .ilha-table th{
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--muted);
+    font-weight: 700;
+  }
+  .ilha-table td:last-child,
+  .ilha-table th:last-child{
+    text-align: right;
+    white-space: nowrap;
+    font-weight: 650;
+    color: var(--ink);
+  }
+  .ilha-chips{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin: 0 0 8px;
+  }
+  .ilha-chip{
+    font-size: 0.7rem;
+    font-weight: 650;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: rgba(42,157,143,0.12);
+    color: var(--sea);
+  }
+  .ilha-list{
+    margin: 0;
+    padding: 0 0 0 1.1em;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .ilha-list li{ line-height: 1.35; }
+  .ilha-list strong{ color: var(--ink); }
+
+  .ilha-jump{
+    display: none;
+    margin-top: 10px;
+  }
+  .ilha-jump.visible{ display: block; }
+  .ilha-jump button{
+    appearance: none;
+    width: 100%;
+    border: 1px solid rgba(26,122,122,0.35);
+    background: rgba(42,157,143,0.12);
+    color: var(--sea);
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 700;
+    padding: 10px 12px;
+    border-radius: 12px;
+    cursor: pointer;
+  }
+
+  .leaflet-tooltip.walk-tip{
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    color: #b83280;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    box-shadow: 0 4px 12px rgba(20,48,60,0.12);
+  }
+  .leaflet-tooltip.walk-tip::before{ display: none; }
+  .leaflet-tooltip.walk-tip.boat{
+    color: #2a6f9d;
+    border-color: rgba(42,111,157,0.35);
+  }
+
+  .legend-row{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--line);
+    font-size: 0.72rem;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+  .legend-row span{ display: inline-flex; align-items: center; gap: 5px; }
+  .lg{
+    width: 9px; height: 9px; border-radius: 50%;
+    border: 2px solid; background: #fff; display: inline-block;
+  }
+  .lg.sea{ border-color: var(--sea-bright); }
+  .lg.smoke{ border-color: var(--smoke); }
+  .lg.accent{ border-color: var(--coral); border-style: dashed; }
+  .lg.sleep{
+    border: none;
+    background: #6b4a8a;
+    width: 14px; height: 14px;
+    border-radius: 4px 4px 4px 0;
+    position: relative;
+  }
+
+  .timeline-wrap{
+    flex: 1;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 8px 10px 18px;
+  }
+  .day-label{
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: rgba(255,252,248,0.92);
+    backdrop-filter: blur(6px);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--sea);
+    padding: 10px 8px 6px;
+  }
+
+  .stop{
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    gap: 2px 10px;
+    padding: 10px 8px;
+    border-radius: 12px;
+    cursor: pointer;
+    outline: none;
+    transition: background .15s ease, transform .15s ease;
+  }
+  .stop:hover, .stop:focus-visible{
+    background: rgba(255,255,255,0.85);
+    transform: translateX(2px);
+  }
+  .stop.active{
+    background: #fff;
+    box-shadow: 0 4px 16px rgba(20,48,60,0.08);
+  }
+  .stop-main{ min-width: 0; }
+  .stop-thumb{
+    margin-top: 8px;
+    width: 100%;
+    max-width: 200px;
+    height: 64px;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    display: block;
+  }
+  .stop-rail{
+    position: relative;
+    display: flex;
+    justify-content: center;
+    padding-top: 4px;
+  }
+  .stop-rail::before{
+    content: "";
+    position: absolute;
+    top: 0; bottom: -14px;
+    left: 50%;
+    width: 2px;
+    background: linear-gradient(180deg, var(--sea-bright), rgba(26,122,122,0.15));
+    transform: translateX(-50%);
+  }
+  .stop:last-child .stop-rail::before{ display: none; }
+  .stop-dot{
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2.5px solid var(--sea-bright);
+    z-index: 1;
+    box-shadow: 0 0 0 3px rgba(42,157,143,0.12);
+  }
+  .stop.technical .stop-dot{ border-color: var(--smoke); }
+  .stop.optional .stop-dot{ border-color: var(--coral); border-style: dashed; }
+  .stop.sleep .stop-dot{
+    width: 18px; height: 18px;
+    border: none;
+    border-radius: 5px 5px 5px 2px;
+    background: #6b4a8a;
+    box-shadow: 0 2px 8px rgba(107,74,138,0.35);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .stop.sleep .stop-dot svg{ width: 11px; height: 11px; fill: #fff; }
+  .stop.active .stop-dot{ transform: scale(1.12); }
+
+  .stop-time{
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--coral);
+  }
+  .stop-name{
+    font-size: 0.95rem;
+    font-weight: 650;
+    margin-top: 1px;
+  }
+  .stop.technical .stop-name{ color: var(--muted); font-weight: 500; }
+  .stop-note{
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  .stop.optional .stop-note{ color: var(--coral); }
+  .stop.sleep .stop-note{ color: #6b4a8a; font-weight: 500; }
+  .badge-bed{
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #6b4a8a;
+    background: rgba(107,74,138,0.1);
+    padding: 2px 7px;
+    border-radius: 999px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+
+  .map-actions{
+    position: absolute;
+    z-index: 900;
+    top: 12px;
+    right: 56px;
+    display: flex;
+    gap: 8px;
+  }
+  .map-actions button{
+    border: 1px solid var(--line);
+    background: var(--panel);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    padding: 10px 14px;
+    font: inherit;
+    font-weight: 700;
+    font-size: 0.82rem;
+    color: var(--ink);
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    transition: transform .15s ease, background .15s ease;
+  }
+  .map-actions button:hover{ transform: translateY(-1px); background: #fff; }
+
+  .map-hint{
+    position: absolute;
+    z-index: 900;
+    left: calc(var(--sidebar-w) + 28px);
+    bottom: 16px;
+    background: rgba(255,255,255,0.92);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 7px 14px;
+    font-size: 0.78rem;
+    color: var(--muted);
+    box-shadow: var(--shadow);
+    pointer-events: none;
+    max-width: min(420px, calc(100vw - var(--sidebar-w) - 48px));
+  }
+  .map-hint.loading{ color: var(--sea); }
+
+  .toggle-sidebar{
+    display: none;
+    position: absolute;
+    z-index: 1100;
+    top: 12px; right: 12px;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    padding: 10px 14px;
+    font: inherit;
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: var(--ink);
+    cursor: pointer;
+    box-shadow: var(--shadow);
+  }
+
+  /* Leaflet */
+  .leaflet-control-zoom{ border: none !important; box-shadow: var(--shadow) !important; border-radius: 10px !important; overflow: hidden; }
+  .leaflet-control-attribution{
+    background: rgba(255,255,255,0.75) !important;
+    font-size: 10px !important;
+  }
+  .leaflet-tooltip.pin-tip{
+    background: rgba(20,48,60,0.92);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 6px 10px;
+    font-family: 'Source Sans 3', sans-serif;
+    font-weight: 600;
+    font-size: 0.8rem;
+    box-shadow: var(--shadow);
+  }
+  .leaflet-tooltip.pin-tip::before{ border-top-color: rgba(20,48,60,0.92); }
+
+  .pin{
+    width: 28px; height: 28px;
+    border-radius: 50% 50% 50% 4px;
+    transform: rotate(-45deg);
+    background: var(--sea-bright);
+    border: 2.5px solid #fff;
+    box-shadow: 0 3px 10px rgba(20,48,60,0.35);
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+  .pin.technical{ background: var(--smoke); }
+  .pin.optional{ background: var(--coral); }
+  .pin.photo{
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    transform: none;
+    background-size: cover;
+    background-position: center;
+    border: 3px solid #fff;
+    box-shadow: 0 3px 12px rgba(20,48,60,0.4);
+  }
+  .pin.photo.optional{ box-shadow: 0 0 0 2px var(--coral), 0 3px 12px rgba(20,48,60,0.4); }
+  .pin.sleep{
+    width: 38px; height: 38px;
+    border-radius: 12px 12px 12px 4px;
+    background: #6b4a8a;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+    animation: sleepPulse 2.6s ease infinite;
+  }
+  .pin.sleep.has-photo{
+    background-size: cover;
+    background-position: center;
+  }
+  .pin.sleep.has-photo::after{
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(160deg, transparent 40%, rgba(107,74,138,0.75));
+  }
+  .pin.sleep svg{
+    transform: rotate(45deg);
+    width: 15px; height: 15px;
+    fill: #fff;
+    position: relative;
+    z-index: 1;
+  }
+  .pin-wrap{ transition: transform .2s ease; }
+  .pin-wrap:hover{ transform: scale(1.12); }
+  .pin-wrap.active{ transform: scale(1.18); z-index: 700 !important; }
+  .pin-wrap.active .pin{
+    box-shadow: 0 0 0 5px rgba(42,157,143,0.28), 0 3px 10px rgba(20,48,60,0.35);
+  }
+  .pin-wrap.active .pin.sleep{
+    box-shadow: 0 0 0 5px rgba(107,74,138,0.3), 0 3px 10px rgba(20,48,60,0.35);
+  }
+  @keyframes sleepPulse{
+    0%,100%{ box-shadow: 0 3px 10px rgba(107,74,138,0.35); }
+    50%{ box-shadow: 0 3px 16px rgba(107,74,138,0.55), 0 0 0 6px rgba(107,74,138,0.15); }
+  }
+
+  @media (max-width: 760px){
+    .sidebar{
+      top: auto; left: 0; right: 0; bottom: 0;
+      width: 100%;
+      height: min(58vh, 520px);
+      border-radius: 20px 20px 0 0;
+      transform: translateY(0);
+    }
+    .sidebar.collapsed{ transform: translateY(calc(100% - 56px)); }
+    .sidebar.collapsed .detail,
+    .sidebar.collapsed .legend-row,
+    .sidebar.collapsed .timeline-wrap{ display: none; }
+    .toggle-sidebar{ display: block; }
+    .map-actions{ right: 12px; top: 56px; }
+    .map-hint{
+      left: 12px;
+      bottom: calc(min(58vh, 520px) + 12px);
+      max-width: calc(100vw - 24px);
+    }
+    body.sidebar-collapsed .map-hint{ bottom: 72px; }
+    .leaflet-control-zoom{ margin-bottom: 70px !important; }
+    .ilha-map-panel{
+      top: 56px;
+      right: 12px;
+      left: 12px;
+      width: auto;
+      max-height: min(42vh, 340px);
+    }
+    body.sidebar-collapsed .ilha-map-panel{
+      max-height: min(48vh, 380px);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *, *::before, *::after{ animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+  <div id="map" role="application" aria-label="Mapa do roteiro completo"></div>
+  <div class="map-actions">
+    <button type="button" id="btn-fit" title="Ver rota toda">Ver rota</button>
+    <button type="button" id="btn-tour-map" title="Reproduzir tour">▶ Tour</button>
+  </div>
+  <div class="map-hint loading" id="map-hint">Carregando traçado real…</div>
+
+  <aside class="ilha-map-panel" id="ilha-map-panel" hidden aria-label="Guia interativo da Ilha do Mel">
+    <div class="ilha-map-panel-head">
+      <div>
+        <strong>Ilha do Mel</strong>
+        <span>pins · tempos · clique no mapa</span>
+      </div>
+      <button type="button" id="ilha-panel-close" aria-label="Fechar guia">×</button>
+    </div>
+    <div class="ilha-map-tabs" role="tablist">
+      <button type="button" role="tab" data-ilha-tab="roteiro" class="active" aria-selected="true">Roteiro</button>
+      <button type="button" role="tab" data-ilha-tab="trilhas" aria-selected="false">Trilhas</button>
+      <button type="button" role="tab" data-ilha-tab="praias" aria-selected="false">Praias</button>
+      <button type="button" role="tab" data-ilha-tab="comer" aria-selected="false">Comer</button>
+      <button type="button" role="tab" data-ilha-tab="dicas" aria-selected="false">Dicas</button>
+    </div>
+    <div class="ilha-map-body">
+      <div class="ilha-pane active" data-ilha-pane="roteiro" role="tabpanel"></div>
+      <div class="ilha-pane" data-ilha-pane="trilhas" role="tabpanel" hidden></div>
+      <div class="ilha-pane" data-ilha-pane="praias" role="tabpanel" hidden></div>
+      <div class="ilha-pane" data-ilha-pane="comer" role="tabpanel" hidden></div>
+      <div class="ilha-pane" data-ilha-pane="dicas" role="tabpanel" hidden></div>
+    </div>
+  </aside>
+
+  <button type="button" class="toggle-sidebar" id="toggle-sidebar" aria-expanded="true">Roteiro</button>
+
+  <aside class="sidebar" id="sidebar" aria-label="Roteiro da viagem">
+    <header class="sidebar-head">
+      <h1 class="brand">Serra Negra <span>→</span> Florianópolis</h1>
+      <div class="meta">
+        <span><i class="dot-live"></i>27–29 dez</span>
+        <span>roteiro completo</span>
+        <span>~900 km</span>
+      </div>
+      <div class="countdown" id="countdown" aria-live="polite">
+        <span class="countdown-label">faltam</span>
+        <span class="countdown-value" id="countdown-value">…</span>
+      </div>
+      <div class="head-actions">
+        <button type="button" id="btn-costs" aria-expanded="false">Custos</button>
+        <button type="button" id="btn-share">Copiar roteiro</button>
+      </div>
+      <div class="costs-panel" id="costs-panel" hidden>
+        <div class="costs-panel-head">
+          <p class="costs-panel-title">Estimativa · 3 pessoas</p>
+          <p class="costs-panel-note">refs. set/2026 · varia</p>
+        </div>
+        <ul class="costs-list" id="costs-list"></ul>
+        <div class="costs-total">
+          <span>faixa total do grupo</span>
+          <strong id="costs-total-value">—</strong>
+        </div>
+      </div>
+    </header>
+
+    <div class="detail empty" id="detail">
+      <div class="detail-photo-wrap">
+        <img class="detail-photo is-hidden" id="detail-photo" alt="" decoding="async">
+        <div class="detail-placeholder" id="detail-placeholder">Toque numa parada</div>
+        <div class="detail-nav">
+          <button type="button" id="btn-prev" aria-label="Parada anterior">‹</button>
+          <button type="button" id="btn-next" aria-label="Próxima parada">›</button>
+        </div>
+      </div>
+      <div class="detail-body">
+        <span class="detail-type" id="detail-type" hidden></span>
+        <h2 class="detail-name" id="detail-name">Mapa do roteiro</h2>
+        <p class="detail-note empty-copy" id="detail-note">Toque numa parada pra ver foto e detalhes. Tour fica no mapa.</p>
+        <div class="detail-time" id="detail-time" hidden></div>
+
+        <div class="detail-cost" id="detail-cost" hidden></div>
+        <div class="ilha-jump" id="ilha-jump" hidden>
+          <button type="button" id="btn-ilha-map">Ver mapa interativo da ilha</button>
+        </div>
+
+        <div class="detail-ferry" id="detail-ferry" hidden>
+          <div class="detail-ferry-title">Barco · Ilha do Mel</div>
+          <p class="ferry-route">Pontal do Sul ↔ Encantadas</p>
+          <p class="ferry-note">Travessia ~30 min · alta temporada · ABALINE</p>
+          <div class="ferry-times">
+            <div class="ferry-slot out">
+              <strong>08:00</strong>
+              <span>nossa ida</span>
+            </div>
+            <div class="ferry-slot back">
+              <strong>17:00</strong>
+              <span>nossa volta</span>
+            </div>
+          </div>
+          <div class="ferry-prices">
+            <div class="ferry-price">
+              <strong>R$ 49</strong>
+              <span>ida+volta / adulto</span>
+            </div>
+            <div class="ferry-price">
+              <strong>R$ 36</strong>
+              <span>60+ anos</span>
+            </div>
+            <div class="ferry-price">
+              <strong>grátis</strong>
+              <span>crianças até 7</span>
+            </div>
+            <div class="ferry-price">
+              <strong>R$ 25–40</strong>
+              <span>estacionamento / dia</span>
+            </div>
+          </div>
+          <p class="ferry-extra">Barcas a cada ~30 min, das <strong>8h às 18h</strong>. Comprem ida e volta já na chegada (~R$ 147 pra 3). Evitem o último (18h). Gruta e Fortaleza são de graça.</p>
+        </div>
+
+        <a class="detail-video" id="detail-video" href="#" target="_blank" rel="noopener noreferrer" hidden>
+          <img id="detail-video-thumb" alt="" loading="lazy">
+          <div class="detail-video-copy">
+            <div class="detail-video-kicker">Vídeo · YouTube</div>
+            <div class="detail-video-title" id="detail-video-title"></div>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <div class="legend-row">
+      <span><i class="lg sea"></i> ponto</span>
+      <span><i class="lg smoke"></i> técnica</span>
+      <span><i class="lg accent"></i> opcional</span>
+      <span><i class="lg sleep"></i> pernoite</span>
+    </div>
+
+    <div class="timeline-wrap" id="timeline"></div>
+  </aside>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+  const BED_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18v-5a3 3 0 0 1 3-3h1V8a3 3 0 0 1 3-3h4a3 3 0 0 1 3 3v2h1a3 3 0 0 1 3 3v5v3h-2v-2H5v2H3zm7-10h4V8a1 1 0 0 0-1-1h-2a1 1 0 0 0-1 1v0z"/></svg>';
+
+  const PLACES = {
+    sn:        { lat:-22.6126745, lng:-46.699658,  name:"Serra Negra", note:"Saída às 6h pela BR-116 até a Graciosa — sem entrar em Curitiba", photo:"https://lh3.googleusercontent.com/place-photos/AG9NLjDnDgqALpRy41c3uBETyXc4BDXsNY4SDRlnI-2-vs_DvHDsJaxYuaksy1lhfgbEk11dA44O8MJwH9SPTPyZzplee0usDYsaQ1RNyHrOVWz_RH0CnRD_cE2ksREQ15xY_PjPp76YSut_trQ1VA=s800-w800-h600", cost:"Combustível total da viagem (~900 km): ~R$ 465–560 (gasolina ~R$ 6,20 · 10–12 km/l). Pedágios Régis no dia 1: ~R$ 12–17 (3–4 praças × R$ 4,10)." },
+    registro:  { lat:-24.4869, lng:-47.8459, name:"Registro", note:"Primeira parada técnica / café da manhã na Régis — sem desvio por Itapetininga", type:"technical", photo:"https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=900&q=80", cost:"Café / lanche de posto: ~R$ 15–35 por pessoa." },
+    turvo:     { lat:-24.9562, lng:-48.4629, name:"Divisa SP/PR", note:"Última esticada antes do Portal da Graciosa", type:"technical", photo:"https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=900&q=80" },
+    portal:    { lat:-25.3059498, lng:-48.9451897, name:"Portal da Graciosa", note:"Almoço + início da descida pela PR-410 (saída da BR-116)", photo:"https://lh3.googleusercontent.com/place-photos/AG9NLjBlkrrvjd0rsl_MfLc7ZNquciQ019za0sx-5iEXGCtnTUFElpAm870QNFVr5AvMYqaeuQzGsrvF-vgXWrdTpzz7ZU0DmuWkeap-PPIYpqCVeP5W8BVVhhGTQuzSwPOffIHgB_xtEKedFZgcxg=s800-w800-h600", cost:"Almoço no Portal / entorno: ~R$ 40–80 por pessoa. Estrada da Graciosa sem pedágio." },
+    lacerda:   { lat:-25.3336298, lng:-48.9011222, name:"Mirante Recanto Eng. Lacerda", note:"Vista de Paranaguá e do Pico Marumbi · pastel de milho", photo:"https://lh3.googleusercontent.com/place-photos/AG9NLjBecldNLWCjRAs5e0uJzk5inlb7_OeD2MsSdrjrOV_i-BA0cTmy4egNcI8fo8Ttpbr5s5xOrGPwlsQmnnli3aBuN8wUTn5Z2bAIkE_50N44Hxzf3MTRPyYR4Wda4WA8jt77YznrxqYu1muPaA=s800-w800-h600", cost:"Pastel de milho e lanchinho no mirante: ~R$ 10–25." },
+    catira:    { lat:-25.3632206, lng:-48.8762446, name:"Recanto Mãe Catira", note:"Cachoeira de 70m em duas quedas", photo:"https://lh3.googleusercontent.com/place-photos/AG9NLjD7LwGAOd2QXXk2jrXl3eZVWmIbVCrPgonlPPmYorcXvP28W37TpDIplE1spZwi3Og_4tvi65Z26oD4RUArKXj0OcYRTddpehTu-cB_BDaPh80I7M_guHgAv6eQKySgRxk3J2e1wn7sV49xCHM=s800-w800-h600", cost:"Acesso à cachoeira costuma ser gratuito / consumo no local." },
+    morretes:  { lat:-25.4777177, lng:-48.8309618, name:"Centro histórico de Morretes", note:"Opcional, rápida — cidade colonial à beira do rio", type:"optional", photo:"https://lh3.googleusercontent.com/place-photos/AG9NLjBEgPlA7uLegVOFiY53rGJ9pPuyiC2koJ13blztxmCgTifM5DQaT5AneRsWJT4ZWox0e8UxxPqs-Cptc90DddqvGMk1AVWV9jXyDoVEblTa_ZYEYIeQUVRmtzsfAwmHg3xUY6Dwk6P7QssI8Pk=s800-w800-h600", cost:"Se pararem pra barreado/lanche: ~R$ 50–90 por pessoa." },
+    pontal:    { lat:-25.6972521, lng:-48.4759701, name:"Pontal do Paraná", note:"Pernoite 27/dez — base pra pegar o barco da Ilha do Mel no dia seguinte", type:"sleep", sleepLabel:"Pernoite · 27/dez", photo:"https://lh3.googleusercontent.com/place-photos/AG9NLjAJnJlGxljk97gKNcLIyg246EU81flNij0lJ4l2rBG96v2u9fWonvXMuqXo6HF_t3bEPc208V6RFREV6Qb6R-d8mBSOu8bQ31xYiWF4HkQG1qUqyZaqrEAsvu0MzLKx9juMUeX8lfEifi7U1A=s800-w800-h600", cost:"Pousada 27/dez (antes do pico do Réveillon): ~R$ 350–700 o quarto. Réveillon (31) sobe muito mais." },
+
+    "terminal-ida": { lat:-25.5667354, lng:-48.3578794, name:"Terminal Pontal do Sul", note:"Embarque ABALINE · Alameda do Café · compre ida e volta Encantadas (não Brasília)", photo:"https://lh3.googleusercontent.com/place-photos/AG9NLjDhi8HSuIq6cfQmJA6B0JLoLbKI_nMUEV4J1Bz2tymJXb5NW-wx7JIBXfkwZGaXFbNfrsyCJ0CM-z2OfDuU5EZXveoocg2ASh52GThmChrA3jxBa4zITqjQR1f0zCPpCUqz3yogTOXiJmg7=s800-w800-h600", cost:"ABALINE ida+volta Encantadas: R$ 49/adulto · R$ 36 (60+) · grátis até 7 anos. Estacionamento no terminal: R$ 25–40/dia." },
+    encantadas: { lat:-25.5700891, lng:-48.3164675, name:"Trapiche Encantadas", note:"Desembarque na vila · restaurantes e comércio · Gruta a 600 m", photo:"https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&q=80", cost:"Almoço Encantadas ~R$ 50–90/pessoa. Táxi náutico Encantadas↔Brasília ~R$ 25." },
+    gruta:     { lat:-25.5741192, lng:-48.3118606, name:"Gruta das Encantadas", note:"600 m / ~15 min do trapiche · entrar na fenda só com maré baixa (consultar tábua)", photo:"https://lh3.googleusercontent.com/place-photos/AG9NLjB0almObxkqb7eEgAGBZPkTUpi-DPsf99RZVI0tJz2P6N3r30NG2gG9llYF_Af_NktHJfX1WKDMaxD-J5e-eHBR_3q6tp_vnxl5tERI7Wzvcu7xpGRKaIFjaqGYjv_TOFtsGxzZWbNClcs9MP--MDF8cA=s800-w800-h600", cost:"Sem ingresso — acesso livre depois da travessia." },
+    brasilia:  { lat:-25.5424901, lng:-48.3054620, name:"Nova Brasília", note:"Trapiche · hub pro Farol e Fortaleza · aluguel de bike", photo:"https://images.unsplash.com/photo-1559827260-dc66d52bef19?auto=format&fit=crop&w=900&q=80", cost:"Táxi náutico ~R$ 25 de Encantadas (~10–15 min). Bike ~R$ 20/h." },
+    farol:     { lat:-25.5390879, lng:-48.2908477, name:"Farol das Conchas", note:"1872 · 1,6 km de Brasília · ~150 degraus · vista panorâmica", photo:"https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&q=80", cost:"Acesso gratuito. Subida pelo Morro das Conchas." },
+    fortaleza: { lat:-25.5107872, lng:-48.3112485, name:"Fortaleza N. Sra. dos Prazeres", note:"1767–70 · ~4 km / ~1h de Brasília · Praia da Fortaleza · mirante do Morro da Baleia", photo:"https://lh3.googleusercontent.com/place-photos/AG9NLjA4ej6_hNLojcXd57jiqQlHAf1-Bzay81BPD4rrpFhlFpcUR3xgeHC4qo4VTHtBLskJytVUSo1nrXo56LPeje0VzRM1bDguMTqp4CKI7cGgp9hfKkom90XewNvS-ikIx0SyAdWqe0ecb13KeQ=s800-w800-h600", cost:"Visita gratuita · 12 canhões · patrimônio desde 1938." },
+    "terminal-volta": { lat:-25.5667354, lng:-48.3578794, name:"Volta · Pontal do Sul", note:"Desembarque no continente às 17h — evitar o último barco (18h)", photo:"https://lh3.googleusercontent.com/place-photos/AG9NLjDhi8HSuIq6cfQmJA6B0JLoLbKI_nMUEV4J1Bz2tymJXb5NW-wx7JIBXfkwZGaXFbNfrsyCJ0CM-z2OfDuU5EZXveoocg2ASh52GThmChrA3jxBa4zITqjQR1f0zCPpCUqz3yogTOXiJmg7=s800-w800-h600", cost:"Volta já inclusa no bilhete ida+volta (R$ 49). Guarde o voucher." },
+    guaratuba: { lat:-25.8843865, lng:-48.5762979, name:"Guaratuba / Matinhos", note:"Pernoite 28/dez — de carro após o desembarque (mais barato que dormir na ilha)", type:"sleep", sleepLabel:"Pernoite · 28/dez", photo:"https://lh3.googleusercontent.com/place-photos/AG9NLjBIBIVf7yRzTyCP60DWCb975q3B_3UT_YViJwcLus0c1a1SKiqr59CWJXUQRlqy6XEnxrAS_OclqVxfbg-R2PiVuRkkwxrE0RrqwwTj9Mdk1TkEZPL1ou7a3o-Mkhhg0WP9FkSMxbZM7itUntM=s800-w739-h415", cost:"Pousada 28/dez: ~R$ 300–650 o quarto. Dormir no continente sai bem mais barato que na ilha em alta temporada." },
+
+    garuva:    { lat:-26.0296737, lng:-48.8555034, name:"Garuva", note:"Via ponte de Guaratuba — sem fila de balsa", photo:"https://lh3.googleusercontent.com/place-photos/AG9NLjDXd4t8niGqjdQDkTOySRl58sMFprPtBB_Fw8EIdVZ7u3wV6FKpCk0K27Wg4uNbgozqRNgl1850ZCPs_ZQ7QJ9O1vet4gAAWBfgYYyR46otuwfy5VWOw9byJpJvnrFpgBh-WMWvIixilDqhRg=s800-w619-h600", cost:"Ponte de Guaratuba (aberta 2026) — sem balsa. Pedágio BR-101 Garuva: ~R$ 5,90." },
+    joinville: { lat:-26.3014741, lng:-48.8479904, name:"Joinville", note:"Passagem pelo litoral norte de SC", photo:"https://lh3.googleusercontent.com/place-photos/AG9NLjDBSoOj4H2xCZKO40B3NjE9ns8o5QnUz5Jb6cIR1UW0cZgTM-KXsZQgyvPAlJrzblND0XBhw-wXCxAwT90wFb4uQt_Aj2YRarYvsBGvnsu9evY8pNJb0KHT4G0a35unl0V47buhrqsznyCQ3Q=s800-w800-h600" },
+    barravelha:{ lat:-26.6249576, lng:-48.6799156, name:"Barra Velha", note:"Passagem pelo litoral — praia e BR-101", photo:"https://lh3.googleusercontent.com/place-photos/AG9NLjDQBA66d5YtLMvy4Ef2-4mOwcukB41aX7jBu0Su3Ig0NWg51yYBcfgJs5AA81_zoeu73pU4uX9byhd8wpB0-UycVx-jkQKTTDP1eZxn1khO3mO2oQ6Bd8hSS3YeTYSDd_GDV7wjhInQBA=s800-w800-h600" },
+    penha:     { lat:-26.7998594, lng:-48.6136359, name:"Penha", note:"Cidade do Beto Carrero World", photo:"https://lh3.googleusercontent.com/place-photos/AG9NLjAibwpHUX84fMWvwdceHZwfFwURLxaFfwTwcI-S-hshzJHTUFXOyVfC-q4d6HaWzopMwflsUONGzI8uymKNKdTk8oHJw7AVxA8t2Q5G7Ys5_R6fpgb3WvR9AG0aEANpibluvCC3s45LFmkJgw=s800-w800-h600" },
+    navegantes:{ lat:-26.8954069, lng:-48.6569206, name:"Navegantes", note:"Antes do contorno de Camboriú", photo:"https://lh3.googleusercontent.com/grass-cs/ACvplmNOYmCn6Qdnx8l3nw6XVj4jVEEJr9cLiv6V3aXgdD5ysWgGbu_woV7HNlOY8HGHYYt17PEHMGcINFPEj0so7JcD0rln6peH8Rf7JuZ-I0uCyjPWnd5w1-YBrYr_E27NlBlgRZWF=s800-w800-h600" },
+    br101:     { lat:-27.00, lng:-48.70, name:"BR-101 (contorno)", note:"Sem entrar em Balneário Camboriú — evita o fluxo de gente", type:"technical", photo:"https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&w=900&q=80", cost:"Pedágios BR-101 no dia 3 (Garuva + Araquari + Porto Belo): ~R$ 18 (3 × R$ 5,90)." },
+    portobelo: { lat:-27.157469, lng:-48.5757024, name:"Porto Belo", note:"Porto e enseada — ponto de decisão pra Bombinhas", photo:"https://lh3.googleusercontent.com/place-photos/AG9NLjANzU4MeMnM7XdUFrbysjWWU0Ms1KikFAOqAC7mSesJUEgxI4bU45WUtdvQ0ZFyxU1tcB6iUfJLusu5ggvLBeEd2vZT9rc19fY4Dq-GyLeXhPT3tIrYeViMx1FdTJTli77MWLc9xxTir7UzpA=s800-w800-h600" },
+    bombinhas: { lat:-27.1391, lng:-48.4826, name:"Bombinhas", note:"Condicional — só se chegar em Porto Belo até 15h (desvio de península)", type:"optional", photo:"https://images.pexels.com/photos/33322948/pexels-photo-33322948.jpeg?auto=compress&cs=tinysrgb&w=900", cost:"Desvio opcional — só combustível extra (~20–30 km ida e volta) e lanche se pararem." },
+    tijucas:   { lat:-27.240063, lng:-48.6336183, name:"Tijucas", note:"Reta final rumo à ilha de Floripa", photo:"https://lh3.googleusercontent.com/place-photos/AG9NLjCgh3tBLi_Pw99oqevDacE-nav5WctLKufginvh7MEmUaW1jOiSZ4gG-s6hueYSM06o4G-kcV1UolSd-FxOUrYCiFMNb4ZRdQnHi0hYk9VpGNhauHGXyolGWBvJ1z5CYeHC3CgQRX4HT2-gvK8=s800-w800-h600" },
+    biguacu:   { lat:-27.4955772, lng:-48.6553657, name:"Biguaçu", note:"Última cidade antes da ponte pra Floripa", photo:"https://lh3.googleusercontent.com/place-photos/AG9NLjDRkI4unN5M5wt0dTlRjmWtyrmjiO6oufge7v3dGfDlHFgPv96fezUJ6KX3d_jRthDdCmC7jR6D6A38AVHLTU2a4F0CkGW0h7xeAAToDM2HXvAgVcWbLZR9KzZpYSF1Xu7edcROMj5fyHwZuQ=s800-w800-h600" },
+    campeche:  { lat:-27.662215, lng:-48.4734326, name:"Florianópolis · Campeche", note:"Chegada — base da irmã no Campeche", type:"sleep", sleepLabel:"Chegada · 29/dez", photo:"https://lh3.googleusercontent.com/place-photos/AG9NLjA7pmh0RWe5lrCA31dhzkWP65A2K2jNntrjyVrwcpKp5fMWgXwy7R6hajGmNbABhg58yhcqKpTrJ_BhMqeRi6cwfUjqevE17jNzJtb-7LmYWh6j7PE2ZJKTJfNy-rLLmoKbFMTYvF_D4ptaKGQ=s800-w696-h475", cost:"Hospedagem na casa da irmã — sem custo de hotel." }
+  };
+
+  // Roteiro contínuo (não separado em abas de dia)
+  const STOPS = [
+    { id:"sn", time:"06:00 · 27/dez", day:"Dia 1 · 27/dez · Serra Negra → Pontal" },
+    { id:"registro", time:"~08:15" },
+    { id:"turvo", time:"~10:15" },
+    { id:"portal", time:"~12:00" },
+    { id:"lacerda", time:"~13:20" },
+    { id:"catira", time:"~13:50" },
+    { id:"morretes", time:"~14:30" },
+    { id:"pontal", time:"~16:00" },
+
+    { id:"terminal-ida", time:"08:00 · 28/dez", day:"Dia 2 · 28/dez · Ilha do Mel" },
+    { id:"encantadas", time:"~08:30" },
+    { id:"gruta", time:"manhã" },
+    { id:"brasilia", time:"~09:45" },
+    { id:"farol", time:"~10:30" },
+    { id:"fortaleza", time:"meio-dia" },
+    { id:"terminal-volta", time:"17:00" },
+    { id:"guaratuba", time:"noite" },
+
+    { id:"garuva", time:"~08:30 · 29/dez", day:"Dia 3 · 29/dez · Litoral → Floripa" },
+    { id:"joinville", time:"~09:45" },
+    { id:"barravelha", time:"~10:45" },
+    { id:"penha", time:"~11:15" },
+    { id:"navegantes", time:"~11:45" },
+    { id:"br101", time:"~12:15" },
+    { id:"portobelo", time:"~13:30" },
+    { id:"bombinhas", time:"~14:00" },
+    { id:"tijucas", time:"~15:00" },
+    { id:"biguacu", time:"~15:40" },
+    { id:"campeche", time:"~16:30–18:00" }
+  ];
+
+  // Traçado real do roteiro inteiro
+  const ROUTE_LEGS = [
+    { mode:"driving", ids:["sn","registro","turvo","portal","lacerda","catira","morretes","pontal"] },
+    { mode:"driving", ids:["pontal","terminal-ida"] },
+    { mode:"boat", ids:["terminal-ida","encantadas"] },
+    { mode:"foot", ids:["encantadas","gruta"] },
+    { mode:"foot", ids:["encantadas","brasilia"] },
+    { mode:"boat", ids:["encantadas","brasilia"] },
+    { mode:"foot", ids:["brasilia","farol"] },
+    { mode:"foot", ids:["brasilia","fortaleza"] },
+    { mode:"boat", ids:["encantadas","terminal-volta"] },
+    { mode:"driving", ids:["terminal-volta","guaratuba"] },
+    { mode:"driving", ids:["guaratuba","garuva","joinville","barravelha","penha","navegantes","br101","portobelo","tijucas","biguacu","campeche"] }
+  ];
+  const OPTIONAL_SPUR = ["portobelo","bombinhas"];
+
+  // Vídeos sugeridos por local (abrir no YouTube)
+  const VIDEOS = [
+    {
+      id: "ilha-mel-dia",
+      youtubeId: "tuCbeWhfaEw",
+      title: "Ilha do Mel em um dia — sem carro",
+      author: "Trip Juntos Por Aí",
+      place: "Ilha do Mel",
+      related: ["terminal-ida","encantadas","gruta","brasilia","farol","fortaleza","terminal-volta","pontal","guaratuba"]
+    }
+  ];
+
+  const TYPE_LABEL = {
+    technical: "Parada técnica",
+    optional: "Opcional",
+    sleep: "Pernoite",
+    default: "Parada"
+  };
+
+  const timelineEl = document.getElementById('timeline');
+  const detailEl = document.getElementById('detail');
+  const detailPhoto = document.getElementById('detail-photo');
+  const detailPlaceholder = document.getElementById('detail-placeholder');
+  const detailType = document.getElementById('detail-type');
+  const detailName = document.getElementById('detail-name');
+  const detailNote = document.getElementById('detail-note');
+  const detailTime = document.getElementById('detail-time');
+  const mapHint = document.getElementById('map-hint');
+  const sidebar = document.getElementById('sidebar');
+  const toggleBtn = document.getElementById('toggle-sidebar');
+  const btnPrev = document.getElementById('btn-prev');
+  const btnNext = document.getElementById('btn-next');
+  const btnFit = document.getElementById('btn-fit');
+  const btnTourMap = document.getElementById('btn-tour-map');
+  const btnShare = document.getElementById('btn-share');
+  const btnCosts = document.getElementById('btn-costs');
+  const costsPanel = document.getElementById('costs-panel');
+  const costsList = document.getElementById('costs-list');
+  const costsTotalValue = document.getElementById('costs-total-value');
+  const countdownValue = document.getElementById('countdown-value');
+  const detailVideo = document.getElementById('detail-video');
+  const detailVideoThumb = document.getElementById('detail-video-thumb');
+  const detailVideoTitle = document.getElementById('detail-video-title');
+  const detailFerry = document.getElementById('detail-ferry');
+  const detailCost = document.getElementById('detail-cost');
+  const detailIlha = document.getElementById('ilha-map-panel');
+  const ilhaJump = document.getElementById('ilha-jump');
+  const btnIlhaMap = document.getElementById('btn-ilha-map');
+  const btnIlhaClose = document.getElementById('ilha-panel-close');
+
+  // Tour: pula paradas técnicas pra ficar mais cinematográfico
+  const TOUR_IDS = STOPS
+    .map(s => s.id)
+    .filter(id => PLACES[id].type !== 'technical');
+
+  const TRIP_START = new Date(2026, 11, 27, 6, 0, 0); // 27/dez/2026 06:00
+  const ILHA_IDS = new Set(["terminal-ida","encantadas","gruta","brasilia","farol","fortaleza","terminal-volta","pontal","guaratuba"]);
+  const ILHA_MAP_IDS = new Set(["terminal-ida","encantadas","gruta","brasilia","farol","fortaleza","terminal-volta"]);
+  const ILHA_CORE = ["encantadas","gruta","brasilia","farol","fortaleza"];
+  const ILHA_TRAILS = [{"id": "encantadas>gruta", "kind": "foot", "label": "a pé ~15 min · 0,6 km", "km": 0.78, "mid": [-25.572536, -48.312496], "latlngs": [[-25.570089, -48.316468], [-25.570337, -48.315064], [-25.570567, -48.314531], [-25.571454, -48.31436], [-25.571849, -48.314068], [-25.572281, -48.312714], [-25.572536, -48.312496], [-25.572684, -48.311939], [-25.572881, -48.311802], [-25.573715, -48.311793], [-25.574008, -48.311664], [-25.574119, -48.311861]]}, {"id": "encantadas>brasilia", "kind": "foot", "label": "a pé ~1h10–2h · 4,8 km", "km": 4.96, "mid": [-25.563661, -48.302865], "latlngs": [[-25.570089, -48.316468], [-25.570337, -48.315064], [-25.570184, -48.315193], [-25.569688, -48.315142], [-25.569659, -48.314717], [-25.569323, -48.31395], [-25.569345, -48.313108], [-25.568754, -48.312634], [-25.568397, -48.311938], [-25.56843, -48.311525], [-25.5683, -48.31141], [-25.568655, -48.309743], [-25.568536, -48.309479], [-25.568751, -48.309179], [-25.568719, -48.308966], [-25.568623, -48.30874], [-25.567954, -48.308081], [-25.567705, -48.307406], [-25.567778, -48.307026], [-25.567668, -48.306363], [-25.566633, -48.304175], [-25.565948, -48.303237], [-25.565711, -48.303344], [-25.564729, -48.303232], [-25.564385, -48.302797], [-25.563985, -48.302742], [-25.563661, -48.302865], [-25.563296, -48.302574], [-25.562894, -48.302588], [-25.561216, -48.303162], [-25.559846, -48.302948], [-25.558773, -48.302609], [-25.557011, -48.301691], [-25.556341, -48.301015], [-25.555512, -48.299683], [-25.555331, -48.299751], [-25.55376, -48.299487], [-25.553583, -48.300329], [-25.553191, -48.300759], [-25.552248, -48.300669], [-25.55121, -48.299743], [-25.547865, -48.304558], [-25.547606, -48.304565], [-25.547421, -48.304118], [-25.546998, -48.303947], [-25.545929, -48.30443], [-25.545524, -48.304488], [-25.543613, -48.304527], [-25.542652, -48.304051], [-25.542366, -48.304238], [-25.542318, -48.304428], [-25.54249, -48.305462]]}, {"id": "brasilia>farol", "kind": "foot", "label": "a pé 20–30 min · 1,6 km", "km": 1.7, "mid": [-25.540751, -48.29367], "latlngs": [[-25.54249, -48.305462], [-25.542331, -48.304094], [-25.542047, -48.303558], [-25.541818, -48.303388], [-25.542991, -48.300283], [-25.542686, -48.297641], [-25.542138, -48.296504], [-25.541813, -48.295145], [-25.541422, -48.294267], [-25.5411, -48.29381], [-25.540751, -48.29367], [-25.540269, -48.293255], [-25.539952, -48.292749], [-25.539643, -48.292617], [-25.5394, -48.292312], [-25.539312, -48.291683], [-25.539433, -48.291485], [-25.53934, -48.291162], [-25.539139, -48.291039], [-25.539168, -48.290846]]}, {"id": "brasilia>fortaleza", "kind": "foot", "label": "a pé ~1h · 4 km", "km": 3.79, "mid": [-25.536075, -48.308273], "latlngs": [[-25.54249, -48.305462], [-25.542318, -48.304428], [-25.542009, -48.304763], [-25.54159, -48.304786], [-25.540822, -48.305373], [-25.54051, -48.305432], [-25.539746, -48.306154], [-25.539312, -48.306131], [-25.53769, -48.307333], [-25.536075, -48.308273], [-25.532951, -48.309449], [-25.529963, -48.310101], [-25.526768, -48.310419], [-25.522589, -48.31038], [-25.517388, -48.310779], [-25.514098, -48.310703], [-25.512515, -48.311074], [-25.510948, -48.310995], [-25.510669, -48.311135]]}, {"id": "terminal>encantadas", "kind": "boat", "label": "barco ~30 min", "km": 5.0, "mid": [-25.5684, -48.3372], "latlngs": [[-25.5667354, -48.3578794], [-25.5700891, -48.3164675]]}, {"id": "encantadas>brasilia-taxi", "kind": "boat", "label": "táxi ~15 min · R$ 25", "km": 3.5, "mid": [-25.5563, -48.311], "latlngs": [[-25.5700891, -48.3164675], [-25.5424901, -48.305462]]}];
+
+
+  // Guia Ilha do Mel — distâncias oficiais/placas locais + relatos de trilha
+  const ILHA_GUIDE = {
+    roteiro: `
+      <div class="ilha-alert"><strong>Atenção:</strong> Encantadas → Fortaleza a pé é ~8,8 km / ~3h30 <em>só na ida</em> (placas locais). Ida e volta (~17 km) não fecha com barco das 17h + Gruta + almoço. O roteiro abaixo é o que cabe no bate-volta.</div>
+      <h4>Nosso dia · 28/dez</h4>
+      <ul class="ilha-timeline">
+        <li><time>08:00</time><div><strong>Barco Pontal → Encantadas</strong><span>~30 min · desembarque no trapiche</span></div></li>
+        <li><time>08:40</time><div><strong>Gruta das Encantadas</strong><span>600 m / ~15 min do trapiche · preferir maré baixa pra entrar</span></div></li>
+        <li><time>09:30</time><div><strong>Táxi náutico → Nova Brasília</strong><span>~10–15 min · ~R$ 25/pessoa · evita 4,8 km de trilha</span></div></li>
+        <li><time>10:00</time><div><strong>Farol das Conchas</strong><span>1,6 km / ~20–30 min + ~150 degraus · vista panorâmica</span></div></li>
+        <li><time>11:30</time><div><strong>Trilha → Fortaleza</strong><span>Nova Brasília → Fortaleza ~4 km / ~50–60 min (praia + trecho sombreado)</span></div></li>
+        <li><time>13:00</time><div><strong>Fortaleza + Praia da Fortaleza</strong><span>canhões, mirante, banho · patrimônio desde 1938</span></div></li>
+        <li><time>14:30</time><div><strong>Volta a Encantadas</strong><span>táxi náutico de Brasília ou Fortaleza · margem pra não perder o barco</span></div></li>
+        <li><time>15:30</time><div><strong>Almoço / praia em Encantadas</strong><span>restaurantes na beira · Praia de Encantadas</span></div></li>
+        <li><time>17:00</time><div><strong>Barco Encantadas → Pontal</strong><span>evitar o último (18h)</span></div></li>
+      </ul>
+      <p style="margin-top:10px">Plano B se o grupo cansar: Gruta + praias de Encantadas (Mar de Fora / Miguel) + almoço, sem Fortaleza. Plano C tudo a pé Encantadas→Brasília (~4,8 km) e Farol, Fortaleza só se sobrar tempo.</p>
+    `,
+    trilhas: `
+      <h4>Distâncias a pé (placas / guias locais)</h4>
+      <table class="ilha-table">
+        <thead><tr><th>Trecho</th><th>Km</th><th>Tempo</th></tr></thead>
+        <tbody>
+          <tr><td>Trapiche Encantadas → Gruta</td><td>0,6</td><td>~15 min</td></tr>
+          <tr><td>Encantadas → Nova Brasília</td><td>4,8</td><td>~1h10–2h30</td></tr>
+          <tr><td>Nova Brasília → Farol</td><td>1,6</td><td>~20–30 min</td></tr>
+          <tr><td>Nova Brasília → Fortaleza</td><td>~4</td><td>~50–60 min</td></tr>
+          <tr><td>Encantadas → Farol</td><td>5,7–6,4</td><td>~1h30–2h40</td></tr>
+          <tr><td>Encantadas → Fortaleza</td><td>8,4–8,8</td><td>~3h30 (placa)</td></tr>
+        </tbody>
+      </table>
+      <p><strong>Trilha Encantadas → Brasília (mapa):</strong> traçado real via OpenStreetMap (~5 km) pela costa leste — Mar de Fora, Miguel, Praia Grande até o istmo. Em magenta no mapa.</p>
+      <p><strong>Brasília → Farol:</strong> Trilha do Farol OSM (~1,7 km) + escadaria.</p>
+      <p><strong>Brasília → Fortaleza:</strong> trilha norte OSM (~3,8 km), praia/istmo + trecho de mata.</p>
+      <p><strong>Sem carros na ilha</strong> — só a pé, bike ou táxi náutico. Azul tracejado = barco/táxi.</p>
+    `,
+    praias: `
+      <div class="ilha-chips">
+        <span class="ilha-chip">Encantadas</span>
+        <span class="ilha-chip">Mar de Fora</span>
+        <span class="ilha-chip">Miguel</span>
+        <span class="ilha-chip">Praia Grande</span>
+        <span class="ilha-chip">Belo</span>
+        <span class="ilha-chip">Farol</span>
+        <span class="ilha-chip">Fortaleza</span>
+      </div>
+      <ul class="ilha-list">
+        <li><strong>Praia de Encantadas</strong> — trapiche, bares, restaurantes, SUP. Base do desembarque.</li>
+        <li><strong>Praia da Gruta / da Bóia</strong> — fenda no costão (~10 m). Entrar na gruta só com maré baixa (em geral manhã; confirmar tábua da Marinha).</li>
+        <li><strong>Mar de Fora (Fora das Encantadas)</strong> — logo na trilha norte; selvagem, bela.</li>
+        <li><strong>Praia do Miguel</strong> — deserta, no meio Encantadas–Brasília.</li>
+        <li><strong>Praia Grande</strong> — a mais longa; surf e luaus. Bifurcação pra Brasília ou Farol.</li>
+        <li><strong>Praia do Belo</strong> — desvio curto; ótimo pôr do sol (vocês vão de dia).</li>
+        <li><strong>Praia de Fora + Praia do Farol</strong> — embaixo do Farol das Conchas; Fora é boa pra surf.</li>
+        <li><strong>Praia da Fortaleza</strong> — no pé do forte / Morro da Baleia; mais vazia.</li>
+      </ul>
+    `,
+    comer: `
+      <h4>Encantadas (mais comércio)</h4>
+      <ul class="ilha-list">
+        <li><strong>Fim da Trilha</strong> — frutos do mar / paella · ~300 m do trapiche, no caminho da Gruta. Reserva em alta temporada.</li>
+        <li><strong>Restaurante Ilha do Mel</strong> — beira-mar, buffet / peixes.</li>
+        <li><strong>Maré Cheia, Toca do Bacalhau, Eclipse, Feel Good &amp; Sushi, Pizzaria das Conchas, Mar e Sol</strong> — opções espalhadas na vila.</li>
+        <li>Mercadinhos e artesanato perto do trapiche · caiaque ~R$ 50/h (relato).</li>
+      </ul>
+      <h4 style="margin-top:10px">Nova Brasília</h4>
+      <ul class="ilha-list">
+        <li>Barzinhos no trapiche · <strong>Toca do Abutre</strong> (frutos do mar de dia).</li>
+        <li>Mais mercados e aluguel de bike — útil se forem pedalar pro Farol/Fortaleza.</li>
+      </ul>
+      <p>Almoço na ilha: ~R$ 50–90/pessoa. Leve Pix/dinheiro — sinal de cartão oscila. Água e lanche na mochila pra trilha.</p>
+    `,
+    dicas: `
+      <ul class="ilha-list">
+        <li><strong>Limite 5.000 visitantes/dia</strong> — controlado no terminal de Pontal. Em 28/dez (alta) cheguem cedo.</li>
+        <li><strong>Maré da Gruta</strong> — consulte a tábua da Marinha no dia; maré alta/ressaca = perigoso entrar.</li>
+        <li><strong>Levar:</strong> tênis ou sandália firme, água, protetor, chapéu, repelente (butuca na mata), dinheiro/Pix.</li>
+        <li><strong>Não dá pra errar o desembarque:</strong> bilhete Encantadas ≠ Nova Brasília. Vocês querem Encantadas.</li>
+        <li><strong>Farol</strong> (1872) · <strong>Fortaleza</strong> (1767–70, 12 canhões) — ambos grátis.</li>
+        <li><strong>Táxi náutico Encantadas↔Brasília</strong> ~R$ 25 · de hora em hora ~9h–17h (verão até ~18h) · mínimo 2 adultos.</li>
+        <li>Posto de saúde Encantadas (41) 3426-9002 · Polícia Florestal Encantadas (41) 3426-9085.</li>
+      </ul>
+    `
+  };
+
+  function buildIlhaGuide(){
+    Object.entries(ILHA_GUIDE).forEach(([key, html]) => {
+      const pane = detailIlha.querySelector(`[data-ilha-pane="${key}"]`);
+      if(pane) pane.innerHTML = html;
+    });
+  }
+  buildIlhaGuide();
+
+  function setIlhaTab(tab){
+    detailIlha.querySelectorAll('[data-ilha-tab]').forEach(b => {
+      const on = b.dataset.ilhaTab === tab;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    detailIlha.querySelectorAll('[data-ilha-pane]').forEach(p => {
+      const on = p.dataset.ilhaPane === tab;
+      p.classList.toggle('active', on);
+      p.hidden = !on;
+    });
+  }
+
+  detailIlha.querySelectorAll('[data-ilha-tab]').forEach(btn => {
+    btn.addEventListener('click', () => setIlhaTab(btn.dataset.ilhaTab));
+  });
+
+  // Estimativas — refs. set/2026; confirmar na hora
+  const COST_ITEMS = [
+    { label: "Barco ida+volta", detail: "ABALINE Encantadas · R$ 49/adulto", value: "R$ 147", lo: 147, hi: 147 },
+    { label: "Táxi náutico interno", detail: "Encantadas↔Brasília · ~R$ 25 × 3 × 2", value: "R$ 150", lo: 150, hi: 180 },
+    { label: "Estacionamento", detail: "1 dia no terminal · R$ 25–40", value: "R$ 25–40", lo: 25, hi: 40 },
+    { label: "Combustível ~900 km", detail: "gasolina ~R$ 6,20 · 10–12 km/l", value: "R$ 465–560", lo: 465, hi: 560 },
+    { label: "Pedágios", detail: "Régis (dia 1) + BR-101 (dia 3)", value: "R$ 30–45", lo: 30, hi: 45 },
+    { label: "Pernoite Pontal 27/dez", detail: "pousada · antes do pico do Réveillon", value: "R$ 350–700", lo: 350, hi: 700 },
+    { label: "Pernoite Guaratuba 28/dez", detail: "pousada no continente", value: "R$ 300–650", lo: 300, hi: 650 },
+    { label: "Alimentação 3 dias", detail: "~R$ 80–150/pessoa/dia × 3", value: "R$ 720–1.350", lo: 720, hi: 1350 },
+  ];
+
+  function formatBrl(n){
+    return n.toLocaleString('pt-BR');
+  }
+
+  function buildCostsPanel(){
+    costsList.innerHTML = '';
+    let lo = 0, hi = 0;
+    COST_ITEMS.forEach(item => {
+      lo += item.lo; hi += item.hi;
+      const li = document.createElement('li');
+      li.innerHTML = `<span class="c-label">${item.label}</span><span class="c-value">${item.value}</span><span class="c-detail">${item.detail}</span>`;
+      costsList.appendChild(li);
+    });
+    costsTotalValue.textContent = `R$ ${formatBrl(lo)}–${formatBrl(hi)}`;
+  }
+  buildCostsPanel();
+
+  btnCosts.addEventListener('click', () => {
+    const open = costsPanel.classList.toggle('open');
+    costsPanel.hidden = !open;
+    btnCosts.setAttribute('aria-expanded', open ? 'true' : 'false');
+    btnCosts.classList.toggle('active-panel', open);
+  });
+
+  function youtubeUrl(id){ return `https://www.youtube.com/watch?v=${id}`; }
+  function youtubeThumb(id){ return `https://i.ytimg.com/vi/${id}/hqdefault.jpg`; }
+
+  function videoForStop(stopId){
+    return VIDEOS.find(v => v.related.includes(stopId)) || null;
+  }
+
+  // Build continuous timeline
+  STOPS.forEach(stop => {
+    const place = PLACES[stop.id];
+    if(stop.day){
+      const label = document.createElement('div');
+      label.className = 'day-label';
+      label.textContent = stop.day;
+      timelineEl.appendChild(label);
+    }
+    const el = document.createElement('div');
+    const type = place.type || '';
+    el.className = 'stop' + (type ? ' ' + type : '');
+    el.dataset.id = stop.id;
+    el.tabIndex = 0;
+    el.setAttribute('role', 'button');
+
+    const bedBadge = type === 'sleep'
+      ? `<span class="badge-bed">cama · ${place.sleepLabel || 'Pernoite'}</span>`
+      : '';
+    const thumb = place.photo
+      ? `<img class="stop-thumb" src="${place.photo}" alt="" loading="lazy" decoding="async">`
+      : '';
+
+    el.innerHTML = `
+      <div class="stop-rail"><div class="stop-dot">${type === 'sleep' ? BED_SVG : ''}</div></div>
+      <div class="stop-main">
+        <div class="stop-time">${stop.time}</div>
+        <div class="stop-name">${place.name}${bedBadge}</div>
+        ${place.note ? `<div class="stop-note">${place.note}</div>` : ''}
+        ${thumb}
+      </div>
+    `;
+    timelineEl.appendChild(el);
+  });
+
+  const map = L.map('map', {
+    scrollWheelZoom: true,
+    zoomControl: true,
+    zoomSnap: 0.25
+  });
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · rota OSRM',
+    maxZoom: 19
+  }).addTo(map);
+  map.zoomControl.setPosition('topright');
+
+  function colorFor(place){
+    if(place.type === 'technical') return '#6b7c86';
+    if(place.type === 'optional') return '#c45c26';
+    if(place.type === 'sleep') return '#6b4a8a';
+    return '#2a9d8f';
+  }
+
+  function markerFor(id, place){
+    const type = place.type || '';
+    let html;
+    let size;
+    if(type === 'sleep'){
+      size = 38;
+      const bg = place.photo ? `style="background-image:url('${place.photo}')"` : '';
+      html = `<div class="pin sleep ${place.photo ? 'has-photo' : ''}" ${bg}>${BED_SVG}</div>`;
+    } else if(place.photo){
+      size = 36;
+      html = `<div class="pin photo ${type}" style="background-image:url('${place.photo}')"></div>`;
+    } else {
+      size = 28;
+      html = `<div class="pin ${type}"></div>`;
+    }
+    const icon = L.divIcon({
+      className: 'pin-wrap',
+      html,
+      iconSize: [size, size],
+      iconAnchor: [size/2, size - 2],
+      popupAnchor: [0, -size + 4]
+    });
+    const m = L.marker([place.lat, place.lng], {
+      icon,
+      zIndexOffset: type === 'sleep' ? 600 : (place.photo ? 200 : 0)
+    });
+    m.bindTooltip(place.name, {
+      direction: 'top',
+      offset: [0, -size + 4],
+      className: 'pin-tip',
+      opacity: 1
+    });
+    m.on('click', () => { stopTour(); selectStop(id, { fromMap: true }); });
+    m.on('mouseover', () => {
+      const el = document.querySelector(`.stop[data-id="${CSS.escape(id)}"]`);
+      if(el) el.classList.add('hover-sync');
+    });
+    m.on('mouseout', () => {
+      document.querySelectorAll('.stop.hover-sync').forEach(n => n.classList.remove('hover-sync'));
+    });
+    return m;
+  }
+
+  function coordsForIds(ids){
+    return ids.map(id => {
+      const p = PLACES[id];
+      return [p.lng, p.lat];
+    });
+  }
+  function latlngsFromGeo(coords){ return coords.map(c => [c[1], c[0]]); }
+  function straightLatLngs(ids){ return ids.map(id => [PLACES[id].lat, PLACES[id].lng]); }
+
+  const routeCache = new Map();
+  async function fetchOsrm(ids, profile){
+    const key = profile + ':' + ids.join('>');
+    if(routeCache.has(key)) return routeCache.get(key);
+    const path = coordsForIds(ids).map(c => c.join(',')).join(';');
+    const url = `https://router.project-osrm.org/route/v1/${profile}/${path}?overview=full&geometries=geojson`;
+    const res = await fetch(url);
+    if(!res.ok) throw new Error('OSRM HTTP ' + res.status);
+    const data = await res.json();
+    if(data.code !== 'Ok' || !data.routes?.[0]) throw new Error('OSRM ' + (data.code || 'fail'));
+    const meta = {
+      latlngs: latlngsFromGeo(data.routes[0].geometry.coordinates),
+      km: data.routes[0].distance / 1000
+    };
+    routeCache.set(key, meta);
+    return meta;
+  }
+
+  function styleForMode(mode){
+    if(mode === 'boat') return { color:'#2a6f9d', weight:3.5, opacity:0.85, dashArray:'8 8' };
+    if(mode === 'optional') return { color:'#c45c26', weight:3, opacity:0.8, dashArray:'6 10' };
+    if(mode === 'foot') return { color:'#2a9d8f', weight:3, opacity:0.75, dashArray:'2 8' };
+    return { color:'#1a7a7a', weight:4.5, opacity:0.9, lineJoin:'round', lineCap:'round' };
+  }
+
+  function setHint(text, loading){
+    mapHint.textContent = text;
+    mapHint.classList.toggle('loading', !!loading);
+  }
+
+  function mapPadding(){
+    const padLeft = window.innerWidth > 760 ? 420 : 24;
+    const padBottom = window.innerWidth > 760 ? 24 : Math.min(window.innerHeight * 0.58, 520) + 12;
+    return { paddingTopLeft:[padLeft, 24], paddingBottomRight:[24, padBottom] };
+  }
+
+  const markersById = {};
+  let markerLayer = null;
+  let routeLayer = null;
+  let routeBounds = null;
+  let selectedId = null;
+  let ilhaMode = false;
+  let walkLabelLayer = null;
+  let ilhaTrailLayer = null;
+
+  function styleIlhaTrail(kind){
+    if(kind === 'boat'){
+      return { color:'#2a6f9d', weight:3.5, opacity:0.9, dashArray:'10 8', lineJoin:'round' };
+    }
+    // trilha a pé — magenta sólida (como no mapa de referência)
+    return { color:'#b83280', weight:4.5, opacity:0.92, lineJoin:'round', lineCap:'round' };
+  }
+
+  function findIlhaTrail(fromId, toId){
+    const key = fromId + '>' + toId;
+    return ILHA_TRAILS.find(t => t.id === key || t.id === key + '-taxi') || null;
+  }
+
+  function buildWalkLabels(){
+    walkLabelLayer = L.layerGroup();
+    ilhaTrailLayer = L.layerGroup();
+    ILHA_TRAILS.forEach(trail => {
+      const line = L.polyline(trail.latlngs, styleIlhaTrail(trail.kind));
+      line.bindTooltip(trail.label, {
+        permanent: true,
+        direction: 'center',
+        className: 'walk-tip' + (trail.kind === 'boat' ? ' boat' : ''),
+        opacity: 1
+      });
+      // permanent tooltip at mid
+      const tip = L.tooltip({
+        permanent: true,
+        direction: 'center',
+        className: 'walk-tip' + (trail.kind === 'boat' ? ' boat' : ''),
+        opacity: 1
+      }).setContent(trail.label).setLatLng(trail.mid);
+      tip.addTo(walkLabelLayer);
+      line.addTo(ilhaTrailLayer);
+      line.on('click', () => {
+        // highlight + open trilhas tab
+        openIlhaPanel('trilhas');
+      });
+    });
+  }
+
+  function showIlhaTrails(on){
+    if(!ilhaTrailLayer) return;
+    if(on){
+      if(!map.hasLayer(ilhaTrailLayer)) ilhaTrailLayer.addTo(map);
+      if(walkLabelLayer && !map.hasLayer(walkLabelLayer)) walkLabelLayer.addTo(map);
+    } else {
+      if(map.hasLayer(ilhaTrailLayer)) map.removeLayer(ilhaTrailLayer);
+      if(walkLabelLayer && map.hasLayer(walkLabelLayer)) map.removeLayer(walkLabelLayer);
+    }
+  }
+
+  function ilhaBounds(){
+    const ids = [...ILHA_CORE, 'terminal-ida'];
+    return L.latLngBounds(ids.map(id => [PLACES[id].lat, PLACES[id].lng])).pad(0.22);
+  }
+
+  function openIlhaPanel(preferTab){
+    detailIlha.hidden = false;
+    detailIlha.classList.add('open');
+    if(preferTab) setIlhaTab(preferTab);
+  }
+
+  function closeIlhaPanel(){
+    detailIlha.classList.remove('open');
+    detailIlha.hidden = true;
+  }
+
+  function setIlhaPinLabels(on){
+    ILHA_CORE.forEach(id => {
+      const m = markersById[id];
+      const place = PLACES[id];
+      if(!m || !place) return;
+      const size = place.photo ? 36 : 28;
+      m.unbindTooltip();
+      m.bindTooltip(place.name, {
+        permanent: on,
+        direction: 'top',
+        offset: [0, -size + 4],
+        className: 'pin-tip',
+        opacity: 1
+      });
+      if(on) m.openTooltip();
+    });
+  }
+
+  function enterIlhaMode(opts = {}){
+    ilhaMode = true;
+    showIlhaTrails(true);
+    setIlhaPinLabels(true);
+    openIlhaPanel(opts.tab || 'roteiro');
+    // No mobile, prioriza o mapa
+    if(window.innerWidth <= 760 && !opts.keepSidebar){
+      sidebar.classList.add('collapsed');
+      document.body.classList.add('sidebar-collapsed');
+      toggleBtn.setAttribute('aria-expanded', 'false');
+      toggleBtn.textContent = 'Roteiro';
+      setTimeout(() => map.invalidateSize(), 280);
+    }
+    const bounds = ilhaBounds();
+    map.fitBounds(bounds, {
+      paddingTopLeft: window.innerWidth > 760 ? [24, 24] : [16, 16],
+      paddingBottomRight: window.innerWidth > 760 ? [380, 24] : [16, 16],
+      maxZoom: 14,
+      animate: true
+    });
+    setHint('Trilhas em magenta · barco/táxi em azul tracejado', false);
+  }
+
+  function exitIlhaMode(){
+    if(!ilhaMode) return;
+    ilhaMode = false;
+    showIlhaTrails(false);
+    setIlhaPinLabels(false);
+    closeIlhaPanel();
+  }
+
+  function attachRouteInteractivity(line){
+    line.on('mouseover', function(){ this.setStyle({ weight: (this.options.weight || 4) + 2, opacity: 1 }); });
+    line.on('mouseout', function(){
+      const base = styleForMode(this._tripMode || 'driving');
+      this.setStyle({ weight: base.weight, opacity: base.opacity });
+    });
+    line.on('click', () => {
+      if(routeBounds) map.fitBounds(routeBounds, mapPadding());
+    });
+  }
+
+  async function drawFullRoute(){
+    setHint('Calculando traçado real nas estradas…', true);
+    if(routeLayer) map.removeLayer(routeLayer);
+    routeLayer = L.layerGroup().addTo(map);
+    let boundsPts = [];
+
+    try{
+      for(const leg of ROUTE_LEGS){
+        let line;
+        if(leg.mode === 'boat'){
+          const trail = leg.ids.length === 2 ? ILHA_TRAILS.find(t =>
+            t.kind === 'boat' && (t.id === leg.ids[0]+'>'+leg.ids[1] || t.id === leg.ids[0]+'>'+leg.ids[1]+'-taxi' ||
+              (t.id.startsWith(leg.ids[0]) && t.id.includes(leg.ids[1])))
+          ) : null;
+          const pts = trail ? trail.latlngs : straightLatLngs(leg.ids);
+          line = L.polyline(pts, styleForMode('boat'));
+          boundsPts = boundsPts.concat(pts);
+        } else if(leg.mode === 'foot'){
+          // Preferir trilha OSM da Ilha do Mel quando existir
+          const trail = leg.ids.length === 2 ? findIlhaTrail(leg.ids[0], leg.ids[1]) : null;
+          if(trail && trail.kind === 'foot'){
+            line = L.polyline(trail.latlngs, styleForMode('foot'));
+            boundsPts = boundsPts.concat(trail.latlngs);
+          } else {
+            try{
+              const meta = await fetchOsrm(leg.ids, 'foot');
+              line = L.polyline(meta.latlngs, styleForMode('foot'));
+              boundsPts = boundsPts.concat(meta.latlngs);
+            } catch(_){
+              const pts = straightLatLngs(leg.ids);
+              line = L.polyline(pts, styleForMode('foot'));
+              boundsPts = boundsPts.concat(pts);
+            }
+          }
+        } else {
+          try{
+            const meta = await fetchOsrm(leg.ids, 'driving');
+            // soft glow under the road
+            L.polyline(meta.latlngs, { color:'#fff', weight:9, opacity:0.55, lineJoin:'round', lineCap:'round', interactive:false }).addTo(routeLayer);
+            line = L.polyline(meta.latlngs, styleForMode('driving'));
+            boundsPts = boundsPts.concat(meta.latlngs);
+          } catch(err){
+            console.warn(err);
+            const pts = straightLatLngs(leg.ids);
+            line = L.polyline(pts, { ...styleForMode('driving'), opacity:0.4 });
+            boundsPts = boundsPts.concat(pts);
+          }
+        }
+        line._tripMode = leg.mode;
+        line.addTo(routeLayer);
+        attachRouteInteractivity(line);
+      }
+      try{
+        const meta = await fetchOsrm(OPTIONAL_SPUR, 'driving');
+        const spur = L.polyline(meta.latlngs, styleForMode('optional'));
+        spur._tripMode = 'optional';
+        spur.addTo(routeLayer);
+        attachRouteInteractivity(spur);
+      } catch(_){
+        const spur = L.polyline(straightLatLngs(OPTIONAL_SPUR), styleForMode('optional'));
+        spur._tripMode = 'optional';
+        spur.addTo(routeLayer);
+      }
+      setHint('Hover nos alfinetes · clique na rota pra ver tudo · ← → navega', false);
+    } catch(err){
+      console.warn(err);
+      setHint('Rota parcial — tente recarregar', false);
+    }
+
+    if(boundsPts.length){
+      routeBounds = L.latLngBounds(boundsPts);
+      map.fitBounds(routeBounds, mapPadding());
+    }
+  }
+
+  function renderMarkers(){
+    if(markerLayer) map.removeLayer(markerLayer);
+    markerLayer = L.layerGroup();
+    STOPS.forEach(stop => {
+      const place = PLACES[stop.id];
+      const m = markerFor(stop.id, place);
+      m.addTo(markerLayer);
+      markersById[stop.id] = m;
+    });
+    markerLayer.addTo(map);
+    buildWalkLabels();
+  }
+
+  btnIlhaMap.addEventListener('click', () => {
+    const id = selectedId && ILHA_IDS.has(selectedId) ? selectedId : 'encantadas';
+    selectStop(id, { openIlha: true, fromMap: true });
+  });
+  btnIlhaClose.addEventListener('click', () => {
+    exitIlhaMode();
+    if(routeBounds) map.fitBounds(routeBounds, mapPadding());
+    setHint('Hover nos alfinetes · clique na rota pra ver tudo · ← → navega', false);
+  });
+
+  function typeLabel(place){
+    if(place.type && TYPE_LABEL[place.type]) return TYPE_LABEL[place.type];
+    return TYPE_LABEL.default;
+  }
+
+  function stopIndex(id){
+    return STOPS.findIndex(s => s.id === id);
+  }
+
+  function updateNavButtons(){
+    const i = stopIndex(selectedId);
+    btnPrev.disabled = i <= 0;
+    btnNext.disabled = i < 0 || i >= STOPS.length - 1;
+  }
+
+  function selectStop(id, opts = {}){
+    const place = PLACES[id];
+    if(!place) return;
+    selectedId = id;
+
+    document.querySelectorAll('.stop.active').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.pin-wrap.active').forEach(el => el.classList.remove('active'));
+
+    const stopEl = document.querySelector(`.stop[data-id="${CSS.escape(id)}"]`);
+    if(stopEl){
+      stopEl.classList.add('active');
+      if(!opts.fromMap){
+        stopEl.scrollIntoView({ behavior:'smooth', block:'nearest' });
+      }
+    }
+
+    const m = markersById[id];
+    if(m){
+      const el = m.getElement();
+      if(el) el.classList.add('active');
+      // Ilha: o enterIlhaMode faz o fitBounds — não compete com flyTo
+      if(!ILHA_MAP_IDS.has(id) || opts.fromTour){
+        const z = place.type === 'sleep' ? 12 : (opts.fromMap ? Math.max(map.getZoom(), 11) : 11);
+        map.flyTo(m.getLatLng(), Math.max(map.getZoom(), z), { duration: 0.75 });
+      }
+    }
+
+    detailEl.classList.remove('empty');
+    detailName.textContent = place.name;
+    detailNote.textContent = place.note || 'Sem nota adicional neste ponto.';
+    detailNote.classList.remove('empty-copy');
+
+    detailType.hidden = false;
+    detailType.textContent = place.sleepLabel || typeLabel(place);
+    detailType.className = 'detail-type' + (place.type ? ' ' + place.type : '');
+
+    const stopMeta = STOPS.find(s => s.id === id);
+    if(stopMeta){
+      detailTime.hidden = false;
+      detailTime.textContent = stopMeta.time;
+    } else {
+      detailTime.hidden = true;
+    }
+
+    if(place.photo){
+      detailPlaceholder.hidden = true;
+      detailPhoto.alt = place.name;
+      detailPhoto.classList.remove('is-visible');
+      detailPhoto.classList.add('is-hidden');
+      const show = () => {
+        detailPhoto.classList.remove('is-hidden');
+        detailPhoto.classList.add('is-visible');
+      };
+      if(detailPhoto.getAttribute('src') === place.photo) show();
+      else { detailPhoto.onload = show; detailPhoto.src = place.photo; }
+    } else {
+      detailPhoto.classList.add('is-hidden');
+      detailPhoto.classList.remove('is-visible');
+      detailPhoto.removeAttribute('src');
+      detailPlaceholder.hidden = false;
+      detailPlaceholder.textContent = 'Sem foto neste ponto';
+    }
+
+    if(place.cost){
+      detailCost.hidden = false;
+      detailCost.classList.add('visible');
+      detailCost.innerHTML = `<strong>Custo · </strong>${place.cost}`;
+    } else {
+      detailCost.hidden = true;
+      detailCost.classList.remove('visible');
+      detailCost.textContent = '';
+    }
+
+    const relatedVideo = videoForStop(id);
+    const showIlha = ILHA_IDS.has(id);
+    const showIlhaMap = ILHA_MAP_IDS.has(id);
+
+    if(showIlhaMap){
+      // Guia fica no mapa (não no rodapé do painel)
+      detailFerry.hidden = true;
+      detailFerry.classList.remove('visible');
+      ilhaJump.hidden = false;
+      ilhaJump.classList.add('visible');
+      const prefer = id === 'gruta' ? 'praias'
+        : (id === 'fortaleza' || id === 'farol' || id === 'brasilia') ? 'trilhas'
+        : (id === 'encantadas') ? 'comer'
+        : 'roteiro';
+      if(!ilhaMode || opts.fromMap || opts.openIlha){
+        enterIlhaMode({ tab: prefer, keepSidebar: opts.fromTour });
+      } else {
+        openIlhaPanel(prefer);
+      }
+      // Zoom no pin específico depois do fit da ilha
+      if(m && ILHA_CORE.includes(id)){
+        setTimeout(() => {
+          map.panTo(m.getLatLng(), { animate: true });
+        }, 400);
+      }
+    } else if(showIlha){
+      // Pontal/Guaratuba: atalho pro mapa, sem forçar zoom
+      detailFerry.hidden = true;
+      detailFerry.classList.remove('visible');
+      ilhaJump.hidden = false;
+      ilhaJump.classList.add('visible');
+      if(ilhaMode && !opts.fromTour) exitIlhaMode();
+    } else {
+      exitIlhaMode();
+      detailFerry.hidden = true;
+      detailFerry.classList.remove('visible');
+      ilhaJump.hidden = true;
+      ilhaJump.classList.remove('visible');
+    }
+
+    if(relatedVideo){
+      detailVideo.hidden = false;
+      detailVideo.classList.add('visible');
+      detailVideo.href = youtubeUrl(relatedVideo.youtubeId);
+      detailVideoThumb.src = youtubeThumb(relatedVideo.youtubeId);
+      detailVideoThumb.alt = relatedVideo.title;
+      detailVideoTitle.textContent = relatedVideo.title;
+    } else {
+      detailVideo.hidden = true;
+      detailVideo.classList.remove('visible');
+    }
+
+    updateNavButtons();
+
+    if(window.innerWidth <= 760 && !opts.fromTour){
+      if(showIlhaMap){
+        // Mantém mapa aberto pra ver a ilha
+        sidebar.classList.add('collapsed');
+        document.body.classList.add('sidebar-collapsed');
+        toggleBtn.setAttribute('aria-expanded', 'false');
+        toggleBtn.textContent = 'Roteiro';
+      } else {
+        sidebar.classList.remove('collapsed');
+        document.body.classList.remove('sidebar-collapsed');
+        toggleBtn.setAttribute('aria-expanded', 'true');
+        toggleBtn.textContent = 'Mapa';
+      }
+    }
+  }
+
+  function goRelative(delta){
+    const i = stopIndex(selectedId);
+    const next = STOPS[i + delta];
+    if(next) selectStop(next.id);
+  }
+
+  timelineEl.addEventListener('click', (e) => {
+    const stop = e.target.closest('.stop');
+    if(stop){ stopTour(); selectStop(stop.dataset.id); }
+  });
+  timelineEl.addEventListener('keydown', (e) => {
+    if(e.key !== 'Enter' && e.key !== ' ') return;
+    const stop = e.target.closest('.stop');
+    if(!stop) return;
+    e.preventDefault();
+    stopTour();
+    selectStop(stop.dataset.id);
+  });
+  timelineEl.addEventListener('mouseover', (e) => {
+    const stop = e.target.closest('.stop');
+    if(!stop) return;
+    const m = markersById[stop.dataset.id];
+    if(m) m.openTooltip();
+  });
+  timelineEl.addEventListener('mouseout', (e) => {
+    const stop = e.target.closest('.stop');
+    if(!stop) return;
+    const m = markersById[stop.dataset.id];
+    if(m) m.closeTooltip();
+  });
+
+  btnPrev.addEventListener('click', () => { stopTour(); goRelative(-1); });
+  btnNext.addEventListener('click', () => { stopTour(); goRelative(1); });
+  btnFit.addEventListener('click', () => {
+    stopTour();
+    exitIlhaMode();
+    if(routeBounds) map.fitBounds(routeBounds, mapPadding());
+    setHint('Hover nos alfinetes · clique na rota pra ver tudo · ← → navega', false);
+  });
+
+  // —— Countdown ——
+  function updateCountdown(){
+    const now = new Date();
+    const diff = TRIP_START - now;
+    if(diff <= 0){
+      countdownValue.innerHTML = '<em>é agora</em> · boa viagem';
+      return;
+    }
+    const days = Math.floor(diff / 86400000);
+    const hours = Math.floor((diff % 86400000) / 3600000);
+    const mins = Math.floor((diff % 3600000) / 60000);
+    if(days > 0){
+      countdownValue.innerHTML = `<em>${days}</em> dia${days === 1 ? '' : 's'} · ${hours}h`;
+    } else {
+      countdownValue.innerHTML = `<em>${hours}</em>h · ${mins} min`;
+    }
+  }
+  updateCountdown();
+  setInterval(updateCountdown, 60000);
+
+  // —— Copiar roteiro (clipboard) ——
+  function buildShareText(){
+    return [
+      '🚗 Serra Negra → Florianópolis',
+      '📅 27–29 de dezembro · ~900 km',
+      '',
+      '📍 Dia 1 · 27/dez',
+      'BR-116 (Régis) + Estrada da Graciosa — sem entrar em Curitiba',
+      'Pernoite: Pontal do Paraná (~R$ 350–700 o quarto)',
+      '',
+      '🏝️ Dia 2 · 28/dez · Ilha do Mel',
+      'Barco Pontal do Sul → Encantadas às 8h',
+      'Ida+volta ABALINE: R$ 49/adulto · estacionamento R$ 25–40',
+      'Volta às 17h (evitar o último das 18h)',
+      'Pernoite: Guaratuba / Matinhos (~R$ 300–650)',
+      '',
+      '🌊 Dia 3 · 29/dez',
+      'BR-101 litoral — sem entrar em Balneário Camboriú',
+      'Bombinhas só se chegar em Porto Belo até 15h',
+      'Chegada: Florianópolis · Campeche',
+      '',
+      '💰 Estimativa grupo (3): ~R$ 2.000–3.500',
+      '(combustível + pedágio + barco + 2 pernoites + comida)',
+      '',
+      'Nos vemos na estrada ✨'
+    ].join('\n');
+  }
+
+  async function shareTrip(){
+    const text = buildShareText();
+    try{
+      await navigator.clipboard.writeText(text);
+      btnShare.classList.add('copied');
+      btnShare.textContent = 'Copiado!';
+      setTimeout(() => {
+        btnShare.classList.remove('copied');
+        btnShare.textContent = 'Copiar roteiro';
+      }, 1800);
+    } catch(_){
+      // Fallback: prompt for older browsers
+      window.prompt('Copie o roteiro:', text);
+    }
+  }
+  btnShare.addEventListener('click', shareTrip);
+
+  // —— Tour automático ——
+  let tourTimer = null;
+  let tourIndex = 0;
+  let touring = false;
+
+  function setTourUi(on){
+    touring = on;
+    btnTourMap.textContent = on ? '⏹ Parar' : '▶ Tour';
+    btnTourMap.classList.toggle('tour-on', on);
+    if(on) setHint('Tour rolando · clique Parar ou mexa no mapa', false);
+  }
+
+  function stopTour(){
+    if(tourTimer){
+      clearTimeout(tourTimer);
+      tourTimer = null;
+    }
+    if(touring) setTourUi(false);
+  }
+
+  function tourStep(){
+    if(!touring) return;
+    const id = TOUR_IDS[tourIndex];
+    selectStop(id, { fromTour: true });
+    tourIndex += 1;
+    if(tourIndex >= TOUR_IDS.length){
+      tourTimer = setTimeout(() => {
+        stopTour();
+        if(routeBounds) map.fitBounds(routeBounds, mapPadding());
+        setHint('Tour completo · alfinetes roxos = pernoite', false);
+      }, 2200);
+      return;
+    }
+    tourTimer = setTimeout(tourStep, 2800);
+  }
+
+  function startTour(){
+    stopTour();
+    tourIndex = 0;
+    setTourUi(true);
+    // Collapse sidebar a bit on mobile for map focus
+    if(window.innerWidth <= 760){
+      sidebar.classList.add('collapsed');
+      document.body.classList.add('sidebar-collapsed');
+      toggleBtn.setAttribute('aria-expanded', 'false');
+      toggleBtn.textContent = 'Roteiro';
+      setTimeout(() => map.invalidateSize(), 280);
+    }
+    tourStep();
+  }
+
+  function toggleTour(){
+    if(touring) stopTour();
+    else startTour();
+  }
+
+  btnTourMap.addEventListener('click', toggleTour);
+
+  // Stop tour on manual map drag
+  map.on('dragstart', stopTour);
+
+  document.addEventListener('keydown', (e) => {
+    if(e.target.matches('input, textarea')) return;
+    if(e.key === 'ArrowLeft'){ e.preventDefault(); stopTour(); goRelative(-1); }
+    if(e.key === 'ArrowRight'){ e.preventDefault(); stopTour(); goRelative(1); }
+    if(e.key === ' ' && !e.target.closest('button, a')){
+      e.preventDefault();
+      toggleTour();
+    }
+  });
+
+  toggleBtn.addEventListener('click', () => {
+    const collapsed = sidebar.classList.toggle('collapsed');
+    document.body.classList.toggle('sidebar-collapsed', collapsed);
+    toggleBtn.setAttribute('aria-expanded', String(!collapsed));
+    toggleBtn.textContent = collapsed ? 'Roteiro' : 'Mapa';
+    setTimeout(() => map.invalidateSize(), 300);
+  });
+
+  window.addEventListener('resize', () => {
+    map.invalidateSize();
+  });
+
+  // CSS helper for hover sync from map
+  const styleSync = document.createElement('style');
+  styleSync.textContent = `.stop.hover-sync{ background: rgba(42,157,143,0.12); }
+  .map-actions button.tour-on{ background: linear-gradient(145deg, #1a7a7a, #156868); color:#fff; border-color:transparent; }`;
+  document.head.appendChild(styleSync);
+
+  renderMarkers();
+  drawFullRoute().then(() => {
+    setTimeout(() => selectStop('sn'), 300);
+  });
+</script>
+</body>
+</html>
